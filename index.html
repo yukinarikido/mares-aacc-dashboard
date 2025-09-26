@@ -7,7 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
-  :root { --gap: 20px; --maxw: 980px; }
+  :root { --gap: 20px; --maxw: 1280px; } /* ← PCでタイムラインを広くできるよう拡張 */
   body { font-family: system-ui, sans-serif; margin: 0; background:#fafafa; }
   .container { max-width: var(--maxw); margin: 24px auto 80px auto; padding: 0 16px; text-align: center; }
   h1 { margin: 0 0 8px 0; }
@@ -19,13 +19,19 @@
   .colcol { display:flex; flex-direction:column; align-items:center; } /* 中央寄せ */
   .vlist { display:flex; flex-direction:column; gap:12px; align-items:center; }
   .card { position: relative; padding: 14px; border:1px solid #e5e7eb; border-radius: 12px; background:#fff; text-align:left; width: min(420px, 33%); }
+  /* ↓ 低/高チャンピオンのカードだけ幅100%にする */
+  #champLow .card, #champHigh .card { width: 100%; }
   @media(max-width:760px){ .card{ width:100%; } }
   .card .title { font-size:16px; font-weight:600; margin:0 0 6px 0; }
   .card.has-medal .title { padding-left: 40px; } /* メダルと重ならない余白 */
   .row { display:flex; gap:10px; align-items:center; }
   .champ-icon { width:28px; height:28px; border-radius:6px; object-fit:cover; background:#eee; }
   .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#f3f4f6; font-size:12px; margin-left:8px; }
+  /* タイムライン(canvas)をPCで大きく */
   canvas { max-width: 900px; margin: 0 auto; }
+  #progress { width: 100%; max-width: 1200px; } /* ← 横幅拡張 */
+  @media(min-width:1024px){ #progress { height: 460px; } } /* ← 縦も拡大（Chart.jsはCSS高さを尊重） */
+
   /* Loading modal */
   .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 9999; }
   .modal { background:#fff; padding: 24px 28px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
@@ -116,7 +122,7 @@
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxaWtw0J8sHbB14_TzAWxFnMnimt-tERRThff5cCn8e8DQIwLbm8pIPneomrHsDAAfS/exec";
 const MIN_GAMES_CHAMP = 3;
 const MIN_GAMES_USER  = 5;
-const EXCLUDE_FOR_ACTIVE = new Set(["マレスロアン","野良"]); // 参加回数タブで除外
+const EXCLUDE_FOR_ACTIVE = new Set(["マレスロアン","野良"]);
 function assumedTeam(slot){ return slot <= 5 ? "Blue" : "Red"; }
 
 function showLoading(s){ document.getElementById('loading').style.display = s ? 'flex' : 'none'; }
@@ -132,16 +138,14 @@ async function loadDataDragon(){
     DD_VER = vers[0];
     const data = await (await fetch(`https://ddragon.leagueoflegends.com/cdn/${DD_VER}/data/ja_JP/champion.json`)).json();
     for(const key in data.data){
-      const obj = data.data[key]; // { name: "アーリ", image:{ full:"Ahri.png" }, ...}
+      const obj = data.data[key]; // { name: "アーリ", image:{ full:"Ahri.png" } ...}
       CHAMP_IMG_BY_JA.set(obj.name, `https://ddragon.leagueoflegends.com/cdn/${DD_VER}/img/champion/${obj.image.full}`);
     }
   }catch(e){
     console.warn('Data Dragon load failed', e);
   }
 }
-function champIconUrl(japaneseName){
-  return CHAMP_IMG_BY_JA.get(japaneseName) || '';
-}
+function champIconUrl(japaneseName){ return CHAMP_IMG_BY_JA.get(japaneseName) || ''; }
 
 async function fetchData(){
   showLoading(true);
@@ -230,6 +234,7 @@ function renderProgressChart(progress){
     data: { labels: progress.labels, datasets: [{ label: '達成率(%)', data: progress.y }] },
     options: {
       responsive:true,
+      maintainAspectRatio: false, /* 高さCSS反映のため */
       scales:{ y:{ min:0, max:100, ticks:{ stepSize:50, callback:(v)=> v + '%' } } }
     }
   });
@@ -298,7 +303,7 @@ function copyTopSummary(){
 fetchData().then(({rows, champions})=>{
   const totalChampions = champions.length > 0 ? champions.length : 171;
 
-  // 1) タイムライン
+  // 1) タイムライン（PCで大きめ）
   const progress = calcProgress(rows, totalChampions);
   renderSummary(progress, totalChampions);
   renderProgressChart(progress);
@@ -317,7 +322,7 @@ fetchData().then(({rows, champions})=>{
       </div>`;
   });
 
-  // 3) 勝率（チャンピオン n≥3） 左=低 / 右=高（各カード縦並び＋アイコン）
+  // 3) 勝率（チャンピオン n≥3） 左=低 / 右=高（各カードは幅100%）
   const byChamp = summarizeWins(rows, r => r.champion);
   const champHigh = toSortedArray(byChamp, { minN: MIN_GAMES_CHAMP, take: 5, comparator: cmpHigh });
   const champLow  = toSortedArray(byChamp, { minN: MIN_GAMES_CHAMP, take: 5, comparator: cmpLow  });
@@ -344,7 +349,7 @@ fetchData().then(({rows, champions})=>{
       </div>`;
   });
 
-  // 4) 勝率（ユーザー n≥5）→ 上位5人（上位3はメダル、名前左に余白）
+  // 4) 勝率（ユーザー n≥5）→ 上位5人（上位3はメダル）
   const byUser = summarizeWins(rows, r => r.user);
   const userHigh = toSortedArray(byUser, { minN: MIN_GAMES_USER, take: 5, comparator: cmpHigh });
   mountVList('userHigh', userHigh, (r)=> `<div class="title">${r.name}</div><div>勝率 ${formatPct(r.rate)} <span class="muted">n=${r.n}</span></div>`);
