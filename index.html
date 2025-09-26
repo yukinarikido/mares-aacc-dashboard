@@ -16,7 +16,8 @@
   .muted { color: #6b7280; font-size: 13px; }
   .col-2 { display:grid; grid-template-columns: 1fr; gap: var(--gap); text-align: left; }
   @media(min-width:860px){ .col-2{ grid-template-columns: 1fr 1fr; } }
-  .vlist { display:flex; flex-direction:column; gap:12px; align-items:center; } /* 中央寄せ縦積み */
+  .colcol { display:flex; flex-direction:column; align-items:center; } /* 中央寄せ */
+  .vlist { display:flex; flex-direction:column; gap:12px; align-items:center; }
   .card { position: relative; padding: 14px; border:1px solid #e5e7eb; border-radius: 12px; background:#fff; text-align:left; width: min(420px, 33%); }
   @media(max-width:760px){ .card{ width:100%; } }
   .card .title { font-size:16px; font-weight:600; margin:0 0 6px 0; }
@@ -66,18 +67,18 @@
   </section>
 
   <section class="section">
-    <h2>頻出チャンピオン上位10体</h2>
+    <h2>頻出チャンピオン上位5体</h2>
     <div id="topChampsCards" class="vlist"></div>
   </section>
 
   <section class="section">
     <h2>勝率の低い/高いチャンピオン（各5体）<span class="pill">n ≥ 3</span></h2>
     <div class="col-2">
-      <div>
+      <div class="colcol">
         <h3 style="margin:0 0 10px 0;">低いチャンピオン</h3>
         <div id="champLow"  class="vlist"></div>
       </div>
-      <div>
+      <div class="colcol">
         <h3 style="margin:0 0 10px 0;">高いチャンピオン</h3>
         <div id="champHigh" class="vlist"></div>
       </div>
@@ -115,7 +116,7 @@
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxaWtw0J8sHbB14_TzAWxFnMnimt-tERRThff5cCn8e8DQIwLbm8pIPneomrHsDAAfS/exec";
 const MIN_GAMES_CHAMP = 3;
 const MIN_GAMES_USER  = 5;
-const EXCLUDE_FOR_ACTIVE = new Set(["マレスロアン","野良"]);
+const EXCLUDE_FOR_ACTIVE = new Set(["マレスロアン","野良"]); // 参加回数タブで除外
 function assumedTeam(slot){ return slot <= 5 ? "Blue" : "Red"; }
 
 function showLoading(s){ document.getElementById('loading').style.display = s ? 'flex' : 'none'; }
@@ -158,6 +159,7 @@ async function fetchData(){
 
 function sortByTime(rows){ return rows.slice().sort((a,b)=> String(a.startTime).localeCompare(String(b.startTime))); }
 
+// タイムライン：基本HH:mm、日付切替点のみMM-dd HH:mm
 function buildTimelineLabels(sortedRows){
   const labels = []; let prevDay = "";
   for(const r of sortedRows){
@@ -169,17 +171,20 @@ function buildTimelineLabels(sortedRows){
   }
   return labels;
 }
+
 function calcProgress(rows, totalChampions){
   const sorted = sortByTime(rows);
   const seen = new Set(); const y=[];
   for(const r of sorted){ if(r.champion) seen.add(r.champion); y.push(Math.round(seen.size/totalChampions*100)); }
   return { labels: buildTimelineLabels(sorted), y, uniqueCount: seen.size };
 }
-function topNChampions(rows, n=10){
+
+function topNChampions(rows, n=5){
   const freq = new Map();
   for(const r of rows) if(r.champion) freq.set(r.champion, (freq.get(r.champion)||0)+1);
   return [...freq.entries()].sort((a,b)=>b[1]-a[1]).slice(0,n).map(([k,v])=>({champion:k, count:v}));
 }
+
 function summarizeWins(rows, keyFn){
   const by = new Map();
   for(const r of rows){
@@ -192,6 +197,19 @@ function summarizeWins(rows, keyFn){
   }
   return by;
 }
+
+// ソート規則：同率時の安定化（勝率→n→名前）
+function cmpHigh(a,b){
+  if (b.rate !== a.rate) return b.rate - a.rate; // 高い順
+  if (b.n !== a.n) return b.n - a.n;             // 試合数多い順
+  return a.name.localeCompare(b.name, 'ja');     // 名前昇順
+}
+function cmpLow(a,b){
+  if (a.rate !== b.rate) return a.rate - b.rate; // 低い順
+  if (b.n !== a.n) return b.n - a.n;             // 試合数多い順
+  return a.name.localeCompare(b.name, 'ja');     // 名前昇順
+}
+
 function toSortedArray(byMap, {minN=1, take=10, comparator=(a,b)=> (b.rate - a.rate)}={}){
   return [...byMap.entries()]
     .map(([name,{w,n}]) => ({ name, w, n, rate: n>0 ? w/n : 0 }))
@@ -205,6 +223,7 @@ function renderSummary(progress, total){
   document.getElementById('summary').textContent =
     `Unique champions: ${progress.uniqueCount}/${total} (${Math.round(progress.uniqueCount/total*100)}%)`;
 }
+
 function renderProgressChart(progress){
   new Chart(document.getElementById('progress'), {
     type: 'line',
@@ -215,6 +234,7 @@ function renderProgressChart(progress){
     }
   });
 }
+
 function mountVList(elId, rows, mapper){
   const el = document.getElementById(elId);
   el.innerHTML = "";
@@ -225,6 +245,7 @@ function mountVList(elId, rows, mapper){
     el.appendChild(div);
   });
 }
+
 function medalizeTop3(containerSelector){
   const cards = Array.from(document.querySelectorAll(containerSelector + ' .card')).slice(0,3);
   cards.forEach((el, i)=>{
@@ -282,8 +303,8 @@ fetchData().then(({rows, champions})=>{
   renderSummary(progress, totalChampions);
   renderProgressChart(progress);
 
-  // 2) 頻出チャンピオン（縦カード10件 + アイコン）
-  const freq = topNChampions(rows, 10);
+  // 2) 頻出チャンピオン（5件：縦カード＋アイコン）
+  const freq = topNChampions(rows, 5);
   mountVList('topChampsCards', freq, (r)=> {
     const url = champIconUrl(r.champion);
     return `
@@ -298,35 +319,35 @@ fetchData().then(({rows, champions})=>{
 
   // 3) 勝率（チャンピオン n≥3） 左=低 / 右=高（各カード縦並び＋アイコン）
   const byChamp = summarizeWins(rows, r => r.champion);
-  const champHigh = toSortedArray(byChamp, { minN: MIN_GAMES_CHAMP, take: 5, comparator:(a,b)=>b.rate-a.rate });
-  const champLow  = toSortedArray(byChamp, { minN: MIN_GAMES_CHAMP, take: 5, comparator:(a,b)=>a.rate-b.rate });
-  mountVList('champHigh', (champHigh), (r)=> {
+  const champHigh = toSortedArray(byChamp, { minN: MIN_GAMES_CHAMP, take: 5, comparator: cmpHigh });
+  const champLow  = toSortedArray(byChamp, { minN: MIN_GAMES_CHAMP, take: 5, comparator: cmpLow  });
+  mountVList('champHigh', champHigh, (r)=> {
     const url = champIconUrl(r.name);
     return `
       <div class="row">
         <img class="champ-icon" src="${url}" alt="" onerror="this.style.visibility='hidden'"/>
         <div>
           <div class="title">${r.name}</div>
-          <div>勝率 ${formatPct(r.rate)} <span class="muted">n=${r.n}, w=${r.w}</span></div>
+          <div>勝率 ${formatPct(r.rate)} <span class="muted">n=${r.n}</span></div>
         </div>
       </div>`;
   });
-  mountVList('champLow',  (champLow),  (r)=> {
+  mountVList('champLow',  champLow,  (r)=> {
     const url = champIconUrl(r.name);
     return `
       <div class="row">
         <img class="champ-icon" src="${url}" alt="" onerror="this.style.visibility='hidden'"/>
         <div>
           <div class="title">${r.name}</div>
-          <div>勝率 ${formatPct(r.rate)} <span class="muted">n=${r.n}, w=${r.w}</span></div>
+          <div>勝率 ${formatPct(r.rate)} <span class="muted">n=${r.n}</span></div>
         </div>
       </div>`;
   });
 
   // 4) 勝率（ユーザー n≥5）→ 上位5人（上位3はメダル、名前左に余白）
   const byUser = summarizeWins(rows, r => r.user);
-  const userHigh = toSortedArray(byUser, { minN: MIN_GAMES_USER, take: 5, comparator:(a,b)=>b.rate-a.rate });
-  mountVList('userHigh', userHigh, (r)=> `<div class="title">${r.name}</div><div>勝率 ${formatPct(r.rate)} <span class="muted">n=${r.n}, w=${r.w}</span></div>`);
+  const userHigh = toSortedArray(byUser, { minN: MIN_GAMES_USER, take: 5, comparator: cmpHigh });
+  mountVList('userHigh', userHigh, (r)=> `<div class="title">${r.name}</div><div>勝率 ${formatPct(r.rate)} <span class="muted">n=${r.n}</span></div>`);
   medalizeTop3('#userHigh');
 
   // 5) 参加回数（除外つき） 上位5人、見出しに「マレスロアン＝x」
@@ -339,7 +360,10 @@ fetchData().then(({rows, champions})=>{
     activeMap.set(r.user, (activeMap.get(r.user)||0)+1);
   }
   document.getElementById('malNote').textContent = `除外: マレスロアン = ${malCount}`;
-  const mostActive = [...activeMap.entries()].sort((a,b)=>b[1]-a[1]).slice(0,5).map(([name,count])=>({name,count}));
+  const mostActive = [...activeMap.entries()]
+    .sort((a,b)=> (b[1]-a[1]) || a[0].localeCompare(b[0],'ja'))
+    .slice(0,5)
+    .map(([name,count])=>({name,count}));
   mountVList('mostActive', mostActive, (r)=> `<div class="title">${r.name}</div><div>参加 ${r.count} 回</div>`);
   medalizeTop3('#mostActive');
 
@@ -356,7 +380,10 @@ fetchData().then(({rows, champions})=>{
     }
   }
   document.getElementById('malContrib').textContent = `マレスロアン = ${malContrib}`;
-  const contrib = [...contribMap.entries()].sort((a,b)=>b[1]-a[1]).slice(0,5).map(([user,count])=>({user,count}));
+  const contrib = [...contribMap.entries()]
+    .sort((a,b)=> (b[1]-a[1]) || a[0].localeCompare(b[0],'ja'))
+    .slice(0,5)
+    .map(([user,count])=>({user,count}));
   mountVList('mostContrib', contrib, (r)=> `<div class="title">${r.user}</div><div>初使用 ${r.count} 体</div>`);
   medalizeTop3('#mostContrib');
 
