@@ -7,105 +7,114 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
-  :root { --gap: 20px; }
-  body { font-family: system-ui, sans-serif; margin: 16px; line-height: 1.5; }
-  h2 { margin-top: 32px; margin-bottom: 8px; }
-  .section { margin-bottom: 32px; padding: 16px; border: 1px solid #e5e7eb; border-radius: 12px; }
-  .row { display: flex; gap: var(--gap); flex-wrap: wrap; align-items: flex-start; }
-  .card { padding: 16px; border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; }
-  .list { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--gap); }
-  .list .card h3 { margin: 0 0 8px 0; font-size: 16px; }
-  .muted { color: #6b7280; font-size: 12px; }
-  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; background:#f3f4f6; font-size:12px; margin-left:8px; }
-  canvas { max-width: 900px; }
+  :root { --gap: 20px; --maxw: 980px; }
+  body { font-family: system-ui, sans-serif; margin: 0; background:#fafafa; }
+  .container { max-width: var(--maxw); margin: 24px auto 80px auto; padding: 0 16px; text-align: center; }
+  h1 { margin: 0 0 8px 0; }
+  h2 { margin: 28px 0 8px 0; }
+  .section { margin: 24px 0; padding: 16px; border: 1px solid #e5e7eb; border-radius: 12px; background:#fff; }
+  .muted { color: #6b7280; font-size: 13px; }
+  .grid { display: grid; gap: var(--gap); }
+  .grid-2x5 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  @media(min-width:800px){ .grid-2x5{ grid-template-columns: repeat(5, minmax(0,1fr)); } }
+  .card { position: relative; padding: 14px; border:1px solid #e5e7eb; border-radius: 12px; background:#fff; }
+  .card h3 { margin: 0 0 6px 0; font-size: 16px; }
+  .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#f3f4f6; font-size:12px; margin-left:8px; }
+  canvas { max-width: 900px; margin: 0 auto; }
   /* Loading modal */
-  .modal-backdrop {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.45);
-    display: none; align-items: center; justify-content: center; z-index: 9999;
-  }
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 9999; }
   .modal { background:#fff; padding: 24px 28px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
   .spinner { width: 28px; height: 28px; border: 3px solid #e5e7eb; border-top-color: #111827; border-radius: 50%; animation: spin 1s linear infinite; display:inline-block; vertical-align: middle; margin-right:8px;}
   @keyframes spin { to { transform: rotate(360deg);} }
-  .toolbar { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
-  button { cursor:pointer; padding:6px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; }
+  /* Medals */
+  .medal { position:absolute; top:8px; left:8px; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:12px; }
+  .gold   { background: radial-gradient(circle at 30% 30%, #ffe88a, #e6b800); }
+  .silver { background: radial-gradient(circle at 30% 30%, #f2f2f2, #bfbfbf); color:#111; }
+  .bronze { background: radial-gradient(circle at 30% 30%, #ffd3a6, #b87333); }
+  .gold-bg   { background: linear-gradient(180deg, #fff9e6, #fff5cc); }
+  .silver-bg { background: linear-gradient(180deg, #f8f8f8, #efefef); }
+  .bronze-bg { background: linear-gradient(180deg, #fff1e6, #ffe5d1); }
+  /* Share cards */
   .share-cards { display:grid; gap: var(--gap); grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
   .share-card { border:1px solid #e5e7eb; border-radius:16px; padding:16px; background:linear-gradient(180deg,#ffffff,#fafafa); }
   .share-card h3 { margin:0 0 6px 0; }
 </style>
 </head>
 <body>
-  <!-- Loading -->
-  <div id="loading" class="modal-backdrop">
-    <div class="modal">
-      <span class="spinner"></span><strong>データを読み込み中…</strong>
-      <div class="muted">初回は数秒かかる場合があります。</div>
-    </div>
+<div id="loading" class="modal-backdrop">
+  <div class="modal">
+    <span class="spinner"></span><strong>データを読み込み中…</strong>
+    <div class="muted">初回は数秒かかる場合があります。</div>
   </div>
+</div>
 
+<div class="container">
   <header class="section">
-    <h1 style="margin:0 0 8px 0;">ARAM Progress</h1>
+    <h1>ARAM Progress</h1>
     <div id="summary" class="muted">Loading…</div>
   </header>
 
   <section class="section">
-    <h2>時間-達成率のグラフ</h2>
-    <div class="toolbar muted">横軸＝StartTime（MM-dd HH:mm） / 達成率＝ユニークチャンピオンの累積%</div>
+    <h2>チャンピオン消化タイムライン</h2>
+    <div class="muted">横軸：StartTime（通常はHH:mm、日付切替点はMM-dd HH:mm） / 縦軸：ユニークチャンピオン累積%</div>
     <canvas id="progress"></canvas>
   </section>
 
   <section class="section">
     <h2>頻出チャンピオン上位10体</h2>
-    <canvas id="topChamps"></canvas>
+    <div id="topChampsCards" class="grid grid-2x5"></div>
   </section>
 
   <section class="section">
     <h2>勝率の高い/低いチャンピオン（各5体）<span class="pill">n ≥ 3</span></h2>
-    <div class="row">
+    <div class="grid" style="grid-template-columns:1fr; gap:20px;">
       <div>
-        <h3 style="margin:0 0 6px 0;">高いチャンピオン</h3>
-        <div id="champHigh" class="list"></div>
+        <h3>高いチャンピオン</h3>
+        <div id="champHigh" class="grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));"></div>
       </div>
       <div>
-        <h3 style="margin:0 0 6px 0;">低いチャンピオン</h3>
-        <div id="champLow" class="list"></div>
+        <h3>低いチャンピオン</h3>
+        <div id="champLow"  class="grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));"></div>
       </div>
     </div>
   </section>
 
   <section class="section">
-    <h2>勝率の高いユーザー<span class="pill">n ≥ 5</span></h2>
-    <div id="userHigh" class="list"></div>
+    <h2>勝率の高いユーザー <span class="pill">n ≥ 5</span></h2>
+    <div id="userHigh" class="grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));"></div>
   </section>
 
   <section class="section">
     <h2>参加回数の多いユーザー 上位5人 <span class="pill">除外: マレスロアン / 野良</span></h2>
-    <div id="mostActive" class="list"></div>
+    <div id="mostActive" class="grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));"></div>
   </section>
 
   <section class="section">
     <h2>達成に最も貢献したユーザー 上位5人</h2>
     <div class="muted">未使用チャンピオンを初めて使用済みにした回数（時系列で判定）</div>
-    <div id="mostContrib" class="list"></div>
+    <div id="mostContrib" class="grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));"></div>
   </section>
 
   <section class="section">
     <h2>共有カード（X向けまとめ）</h2>
-    <div class="toolbar">
+    <div style="margin:8px 0;">
       <button onclick="saveAllCards()">PNGで保存</button>
       <button onclick="copyTopSummary()">テキストをコピー</button>
     </div>
     <div id="shareCards" class="share-cards"></div>
   </section>
+</div>
 
 <script>
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxaWtw0J8sHbB14_TzAWxFnMnimt-tERRThff5cCn8e8DQIwLbm8pIPneomrHsDAAfS/exec";
 const MIN_GAMES_CHAMP = 3;
 const MIN_GAMES_USER  = 5;
 const EXCLUDE_USERS_FOR_ACTIVE = new Set(["マレスロアン","野良"]);
-// 仮定：Slot1–5=Blue、Slot6–10=Red（入力にチーム情報が無いための暫定運用）
+// 勝敗仮定：1–5=Blue, 6–10=Red
 function assumedTeam(slot){ return slot <= 5 ? "Blue" : "Red"; }
 
 function showLoading(s){ document.getElementById('loading').style.display = s ? 'flex' : 'none'; }
+function formatPct(x){ return (Math.round(x*1000)/10).toFixed(1) + "%"; }
 
 async function fetchData(){
   showLoading(true);
@@ -120,49 +129,59 @@ async function fetchData(){
   return { rows: matches.data, users: refs.users || [], champions: refs.champions || [] };
 }
 
-// ---- Helpers ----
 function sortByTime(rows){
   return rows.slice().sort((a,b)=> String(a.startTime).localeCompare(String(b.startTime)));
 }
-function formatPct(x){ return (Math.round(x*1000)/10).toFixed(1) + "%"; }
 
-// 時間-達成率
-function calcProgress(rows, totalChampions){
-  const seen = new Set();
-  const t=[], y=[];
-  for(const r of sortByTime(rows)){
-    if(r.champion) seen.add(r.champion);
-    t.push(r.startTime);
-    y.push(Math.round(seen.size/totalChampions*100));
+// タイムライン：ラベルは基本HH:mm、日付切替点のみMM-dd HH:mm
+function buildTimelineLabels(sortedRows){
+  const labels = [];
+  let prevDay = "";
+  for(const r of sortedRows){
+    const s = String(r.startTime || ""); // "MM-dd HH:mm"
+    const day = s.slice(0,5);            // "MM-dd"
+    const hm  = s.slice(6);              // "HH:mm"
+    if(labels.length === 0 || day !== prevDay){
+      labels.push(s); // 初回と日付切替点はMM-dd HH:mm
+      prevDay = day;
+    } else {
+      labels.push(hm); // それ以外はHH:mmのみ
+    }
   }
-  return { t, y, uniqueCount: seen.size };
+  return labels;
 }
 
-// 頻出チャンピオン
+function calcProgress(rows, totalChampions){
+  const sorted = sortByTime(rows);
+  const seen = new Set();
+  const y=[];
+  for(const r of sorted){
+    if(r.champion) seen.add(r.champion);
+    y.push(Math.round(seen.size/totalChampions*100));
+  }
+  return { labels: buildTimelineLabels(sorted), y, uniqueCount: seen.size };
+}
+
 function topNChampions(rows, n=10){
   const freq = new Map();
   for(const r of rows) if(r.champion) freq.set(r.champion, (freq.get(r.champion)||0)+1);
-  const arr = [...freq.entries()].sort((a,b)=>b[1]-a[1]).slice(0,n);
-  return { labels: arr.map(([k])=>k), values: arr.map(([,v])=>v) };
+  return [...freq.entries()].sort((a,b)=>b[1]-a[1]).slice(0,n).map(([k,v])=>({champion:k, count:v}));
 }
 
-// 勝率集計（チャンピオン/ユーザー共通）
 function summarizeWins(rows, keyFn){
   const by = new Map();
   for(const r of rows){
     const k = keyFn(r);
     if(!k) continue;
     const team = assumedTeam(r.slot);
-    // 勝利判定：試合の勝ちチームと自チームが一致
-    const isWin = (r.winTeam === team) ? 1 : 0;
+    const win = (r.winTeam === team) ? 1 : 0;
     const cur = by.get(k) || { w:0, n:0 };
-    cur.w += isWin; cur.n += 1;
+    cur.w += win; cur.n += 1;
     by.set(k, cur);
   }
   return by;
 }
 
-// ランキング用成形
 function toSortedArray(byMap, {minN=1, take=10, comparator=(a,b)=> (b.rate - a.rate)}={}){
   const arr = [...byMap.entries()]
     .map(([name,{w,n}]) => ({ name, w, n, rate: n>0 ? w/n : 0 }))
@@ -172,72 +191,57 @@ function toSortedArray(byMap, {minN=1, take=10, comparator=(a,b)=> (b.rate - a.r
   return arr;
 }
 
-// 参加回数
-function participationCount(rows){
-  const by = new Map();
-  for(const r of rows){
-    const name = r.user;
-    if(!name || EXCLUDE_USERS_FOR_ACTIVE.has(name)) continue;
-    by.set(name, (by.get(name)||0)+1);
-  }
-  return [...by.entries()].sort((a,b)=>b[1]-a[1]).slice(0,5)
-           .map(([name,count])=>({name,count}));
-}
-
-// 達成貢献（未使用→初使用）
-function contribution(rows){
-  const seen = new Set();
-  const by = new Map();
-  for(const r of sortByTime(rows)){
-    if(!r.champion) continue;
-    if(!seen.has(r.champion)){
-      seen.add(r.champion);
-      const u = r.user || "(名無し)";
-      by.set(u, (by.get(u)||0)+1);
-    }
-  }
-  return [...by.entries()].sort((a,b)=>b[1]-a[1]).slice(0,5)
-           .map(([user,count])=>({user,count}));
-}
-
-// ---- Renderers ----
+/* ---------- Renderers ---------- */
 function renderSummary(progress, total){
-  const el = document.getElementById('summary');
-  el.textContent = `Unique champions: ${progress.uniqueCount}/${total} (${Math.round(progress.uniqueCount/total*100)}%)`;
+  document.getElementById('summary').textContent =
+    `Unique champions: ${progress.uniqueCount}/${total} (${Math.round(progress.uniqueCount/total*100)}%)`;
 }
 
 function renderProgressChart(progress){
   new Chart(document.getElementById('progress'), {
     type: 'line',
-    data: { labels: progress.t, datasets: [{ label: '達成率(%)', data: progress.y }] },
-    options: { responsive:true, scales:{ y:{ min:0, max:100 } } }
+    data: { labels: progress.labels, datasets: [{ label: '達成率(%)', data: progress.y }] },
+    options: {
+      responsive:true,
+      scales:{
+        y:{ min:0, max:100, ticks:{ stepSize:50, callback:(v)=> v + '%' } },
+      }
+    }
   });
 }
 
-function renderTopChampsChart(top){
-  new Chart(document.getElementById('topChamps'), {
-    type: 'bar',
-    data: { labels: top.labels, datasets: [{ label: '出現回数', data: top.values }] },
-    options: { responsive:true }
-  });
-}
-
-function mountList(elId, rows, mapper){
+function mountCards(elId, rows, mapper){
   const el = document.getElementById(elId);
   el.innerHTML = "";
-  rows.forEach(r => {
+  rows.forEach((r, idx) => {
     const div = document.createElement('div');
     div.className = 'card';
-    div.innerHTML = mapper(r);
+    div.innerHTML = mapper(r, idx);
     el.appendChild(div);
   });
 }
 
-// 共有カード
-function buildShareCards({topFreq, topContrib, topWinChamp, lowWinChamp, topWinUsers}){
+// 頻出チャンピオンをカード化（2x5）
+function renderTopChampsCards(items){
+  mountCards('topChampsCards', items, (r)=> `
+    <h3>${r.champion}</h3>
+    <div class="muted">出現 ${r.count} 回</div>
+  `);
+}
+
+// メダル装飾（上位3）
+function medalizeCard(dom, rank){
+  const span = document.createElement('div');
+  span.className = 'medal ' + (rank===0?'gold':rank===1?'silver':'bronze');
+  span.textContent = rank===0?'1':rank===1?'2':'3';
+  dom.prepend(span);
+  dom.classList.add(rank===0?'gold-bg':rank===1?'silver-bg':'bronze-bg');
+}
+
+/* 共有カード */
+function buildShareCards({topFreq, topContrib, topWinChamp, topWinUsers}){
   const host = document.getElementById('shareCards');
   host.innerHTML = "";
-
   const mk = (title, lines) => {
     const d = document.createElement('div');
     d.className = 'share-card';
@@ -245,20 +249,13 @@ function buildShareCards({topFreq, topContrib, topWinChamp, lowWinChamp, topWinU
     host.appendChild(d);
     return d;
   };
-
-  const bestChamp = topWinChamp[0];
-  const bestUsers = topWinUsers.slice(0,3);
-  const mostPlayed = topFreq.labels[0];
-  const contribTop = topContrib[0];
-
   const c1 = mk("🏆 勝率トップ・チャンピオン", [
-    `${bestChamp?.name || "-"} / 勝率 ${bestChamp ? formatPct(bestChamp.rate): "-" }`,
-    `試合数 ${bestChamp?.n ?? "-"}`, 
+    topWinChamp[0] ? `${topWinChamp[0].name} / ${formatPct(topWinChamp[0].rate)} / n=${topWinChamp[0].n}` : '-'
   ]);
-  const c2 = mk("🔥 勝率トップ・ユーザー（Top3）", bestUsers.map(u=>`${u.name} / ${formatPct(u.rate)} / n=${u.n}`));
-  const c3 = mk("📈 最多出場チャンピオン", [ `${mostPlayed || "-"}` ]);
-  const c4 = mk("✨ 達成に最も貢献", [ `${contribTop?.user || "-"} / ${contribTop?.count ?? "-"}回` ]);
-
+  const c2 = mk("🔥 勝率トップ・ユーザー（Top3）",
+    topWinUsers.slice(0,3).map(u=>`${u.name} / ${formatPct(u.rate)} / n=${u.n}`));
+  const c3 = mk("📈 最多出場チャンピオン", [ topFreq[0] ? `${topFreq[0].champion}（${topFreq[0].count}回）` : '-' ]);
+  const c4 = mk("✨ 達成に最も貢献", [ topContrib[0] ? `${topContrib[0].user} / ${topContrib[0].count}回` : '-' ]);
   return [c1,c2,c3,c4];
 }
 
@@ -272,7 +269,6 @@ async function saveAllCards(){
     a.click();
   }
 }
-
 function copyTopSummary(){
   const cards = document.querySelectorAll('.share-card');
   const text = Array.from(cards).map(c=>c.innerText).join('\n\n');
@@ -280,45 +276,62 @@ function copyTopSummary(){
   alert("コピーしました");
 }
 
-// ---- Main ----
+/* ---------- Main ---------- */
 fetchData().then(({rows, champions})=>{
   const totalChampions = champions.length > 0 ? champions.length : 171;
 
-  // 1) 時間-達成率
+  // 1) タイムライン
   const progress = calcProgress(rows, totalChampions);
   renderSummary(progress, totalChampions);
   renderProgressChart(progress);
 
-  // 2) 頻出チャンピオン
-  const top = topNChampions(rows, 10);
-  renderTopChampsChart(top);
+  // 2) 頻出チャンピオン（カード）
+  const freq = topNChampions(rows, 10);
+  renderTopChampsCards(freq);
 
   // 3) 勝率（チャンピオン n≥3）
   const byChamp = summarizeWins(rows, r => r.champion);
   const champHigh = toSortedArray(byChamp, { minN: MIN_GAMES_CHAMP, take: 5, comparator:(a,b)=>b.rate-a.rate });
   const champLow  = toSortedArray(byChamp, { minN: MIN_GAMES_CHAMP, take: 5, comparator:(a,b)=>a.rate-b.rate });
-  mountList('champHigh', champHigh, r => `<h3>${r.name}</h3><div>勝率 ${formatPct(r.rate)} <span class="muted">n=${r.n}, w=${r.w}</span></div>`);
-  mountList('champLow',  champLow,  r => `<h3>${r.name}</h3><div>勝率 ${formatPct(r.rate)} <span class="muted">n=${r.n}, w=${r.w}</span></div>`);
+  mountCards('champHigh', champHigh, (r)=> `<h3>${r.name}</h3><div>勝率 ${formatPct(r.rate)} <span class="muted">n=${r.n}, w=${r.w}</span></div>`);
+  mountCards('champLow',  champLow,  (r)=> `<h3>${r.name}</h3><div>勝率 ${formatPct(r.rate)} <span class="muted">n=${r.n}, w=${r.w}</span></div>`);
 
-  // 4) 勝率（ユーザー n≥5）
+  // 4) 勝率（ユーザー n≥5）＋メダル
   const byUser = summarizeWins(rows, r => r.user);
   const userHigh = toSortedArray(byUser, { minN: MIN_GAMES_USER, take: 10, comparator:(a,b)=>b.rate-a.rate });
-  mountList('userHigh', userHigh, r => `<h3>${r.name}</h3><div>勝率 ${formatPct(r.rate)} <span class="muted">n=${r.n}, w=${r.w}</span></div>`);
+  mountCards('userHigh', userHigh, (r)=> `<h3>${r.name}</h3><div>勝率 ${formatPct(r.rate)} <span class="muted">n=${r.n}, w=${r.w}</span></div>`);
+  // メダル適用（上位3）
+  Array.from(document.querySelectorAll('#userHigh .card')).slice(0,3).forEach((el, i)=> medalizeCard(el, i));
 
-  // 5) 参加回数（除外つき）
-  const active = participationCount(rows);
-  mountList('mostActive', active, r => `<h3>${r.name}</h3><div>参加 ${r.count} 回</div>`);
+  // 5) 参加回数（除外つき）＋メダル
+  const activeMap = new Map();
+  for(const r of rows){
+    if(!r.user || EXCLUDE_USERS_FOR_ACTIVE.has(r.user)) continue;
+    activeMap.set(r.user, (activeMap.get(r.user)||0)+1);
+  }
+  const mostActive = [...activeMap.entries()].sort((a,b)=>b[1]-a[1]).slice(0,5).map(([name,count])=>({name,count}));
+  mountCards('mostActive', mostActive, (r)=> `<h3>${r.name}</h3><div>参加 ${r.count} 回</div>`);
+  Array.from(document.querySelectorAll('#mostActive .card')).slice(0,3).forEach((el, i)=> medalizeCard(el, i));
 
-  // 6) 達成貢献
-  const contrib = contribution(rows);
-  mountList('mostContrib', contrib, r => `<h3>${r.user}</h3><div>初使用 ${r.count} 体</div>`);
+  // 6) 達成貢献（初使用カウント）＋メダル
+  const seen = new Set(); const contribMap = new Map();
+  for(const r of sortByTime(rows)){
+    if(!r.champion) continue;
+    if(!seen.has(r.champion)){
+      seen.add(r.champion);
+      const u = r.user || "(名無し)";
+      contribMap.set(u, (contribMap.get(u)||0)+1);
+    }
+  }
+  const contrib = [...contribMap.entries()].sort((a,b)=>b[1]-a[1]).slice(0,5).map(([user,count])=>({user,count}));
+  mountCards('mostContrib', contrib, (r)=> `<h3>${r.user}</h3><div>初使用 ${r.count} 体</div>`);
+  Array.from(document.querySelectorAll('#mostContrib .card')).slice(0,3).forEach((el, i)=> medalizeCard(el, i));
 
   // 7) 共有カード
-  const cards = buildShareCards({
-    topFreq: top,
+  buildShareCards({
+    topFreq: freq,
     topContrib: contrib,
     topWinChamp: champHigh,
-    lowWinChamp: champLow,
     topWinUsers: userHigh
   });
 
