@@ -258,7 +258,12 @@ function renderProgressChart(progress){
     data: {
       datasets: [{
         label: '達成率(%)',
-        data: progress.times.map((t,i)=> ({ x: t, y: progress.y[i] }))
+        data: progress.times.map((t,i)=> ({ x: t, y: progress.y[i] })),
+        tension: 0,            // ← 補間オフ（直線）
+        pointRadius: 0,        // ← 点を描かない
+        pointHoverRadius: 3,   // ホバー時だけ小さく表示
+        borderWidth: 2,
+        spanGaps: true
       }]
     },
     options: {
