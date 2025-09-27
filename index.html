@@ -200,7 +200,11 @@ function sortByTime(rows){ return rows.slice().sort((a,b)=> a._date - b._date); 
 /* 進捗計算（%） */
 function calcProgress(sortedRows, totalChampions){
   const seen = new Set(); const y=[]; const times=[];
-  for(const r of sortedRows){ if(r.champion) seen.add(r.champion); y.push(Math.round(seen.size/totalChampions*100)); times.push(r._date); }
+  for(const r of sortedRows){
+    if(r.champion) seen.add(r.champion);
+    y.push(Math.round(seen.size/totalChampions*100));
+    times.push(r._date.getTime()); // ← Date → ms に統一
+  }
   return { times, y, uniqueCount: seen.size };
 }
 
@@ -279,19 +283,21 @@ function renderSummary(progress, total){
     `Unique champions: ${progress.uniqueCount}/${total} (${Math.round(progress.uniqueCount/total*100)}%)`;
 }
 
-/* Chart（time scale + カスタムtick） */
 let progressChart = null;
 function renderProgressChart(progress){
   const ctx = document.getElementById('progress').getContext('2d');
   if (progressChart) progressChart.destroy();
 
-  const desiredTicks = buildDesiredTicks(progress.times);
+  const desiredTicks = buildDesiredTicks(progress.times); // すでに ms の配列
+  const xMin = desiredTicks[0];
+  const xMax = desiredTicks[desiredTicks.length - 1];
 
   progressChart = new Chart(ctx, {
     type: 'line',
     data: {
       datasets: [{
         label: '達成率(%)',
+        // x も ms で渡す
         data: progress.times.map((t,i)=> ({ x: t, y: progress.y[i] }))
       }]
     },
@@ -303,42 +309,34 @@ function renderProgressChart(progress){
       scales: {
         x: {
           type: 'time',
+          bounds: 'ticks',   // ← 軸境界を tick に合わせる
+          min: xMin,         // ← 明示的に固定
+          max: xMax,
           time: { unit: 'hour', displayFormats: { hour: 'HH:mm' } },
+          // tick を「最初 / 各日0:00 / 最後 + 等間隔補完」に差し替え
+          afterBuildTicks: (scale) => {
+            scale.ticks = desiredTicks.map(v => ({ value: v }));
+          },
           ticks: {
-            source: 'auto',
-            maxRotation: 0,
             autoSkip: false,
-            callback: (value, index, ticks) => {
-              const d = new Date(value);
+            maxRotation: 0,
+            // 2段表示（配列を返す）: 最初 / 0:00 / 最後 → MM-DD と HH:mm
+            callback: (value) => {
+              const d = new Date(Number(value));
               const HH = String(d.getUTCHours()).padStart(2,'0');
               const mm = String(d.getUTCMinutes()).padStart(2,'0');
-              const isMidnight = HH === '00' && mm === '00';
-              const isFirst = value === desiredTicks[0];
-              const isLast  = value === desiredTicks[desiredTicks.length-1];
-              if (isFirst || isMidnight) {
+              const isEdge = (value === xMin) || (value === xMax);
+              const isMidnight = (HH === '00' && mm === '00');
+              if (isEdge || isMidnight){
                 const MM = String(d.getUTCMonth()+1).padStart(2,'0');
                 const DD = String(d.getUTCDate()).padStart(2,'0');
-                return [`${MM}-${DD}`, `${HH}:${mm}`]; // 2段表示
-              }
-              if (isLast) {
-                const MM = String(d.getUTCMonth()+1).padStart(2,'0');
-                const DD = String(d.getUTCDate()).padStart(2,'0');
-                return [`${MM}-${DD}`, `${HH}:${mm}`];
+                return [`${MM}-${DD}`, `${HH}:${mm}`]; // ← 2段
               }
               return `${HH}:${mm}`;
             }
-          },
-          // afterBuildTicksで、望む目盛だけに置き換える
-          afterBuildTicks: (scale) => {
-            scale.ticks = desiredTicks.map(v => ({ value: v }));
-            return;
-          },
-          grid: { display: true }
+          }
         },
-        y: {
-          min: 0, max: 100,
-          ticks: { stepSize: 50, callback: v => v + '%' }
-        }
+        y: { min: 0, max: 100, ticks: { stepSize: 50, callback: v => v + '%' } }
       }
     }
   });
