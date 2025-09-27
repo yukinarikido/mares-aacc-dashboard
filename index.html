@@ -184,12 +184,32 @@ function rowsWithDates(rows){
 function sortByTime(rows){ return rows.slice().sort((a,b)=> a._date - b._date); }
 
 /* ====== Progress ====== */
-function calcProgress(sortedRows, totalChampions){
-  const seen = new Set(); const y=[]; const times=[];
-  for(const r of sortedRows){
-    if(r.champion) seen.add(r.champion);
-    y.push(Math.round(seen.size/totalChampions*100));
-    times.push(r._date.getTime());
+function calcProgressByMatch(sortedRows, totalChampions){
+  // 1) 試合ごとにまとめる（開始時刻は match の代表時刻）
+  const matches = [];
+  let cur = null;
+  for (const r of sortedRows){
+    if (!cur || r.matchId !== cur.matchId){
+      if (cur) matches.push(cur);
+      cur = { matchId: r.matchId, timeMs: r._date.getTime(), champions: new Set() };
+    }
+    if (r.champion) cur.champions.add(r.champion);
+  }
+  if (cur) matches.push(cur);
+
+  // 2) 累積ユニークを「試合の終わり」で更新して1点だけ出す
+  const seen = new Set();
+  const times = [];
+  const y = [];
+  for (const m of matches){
+    let added = 0;
+    for (const c of m.champions){
+      if (!seen.has(c)){ seen.add(c); added++; }
+    }
+    // 試合で新規0でも「横ばい」を描くため点は出す
+    const pct = Math.round(seen.size / totalChampions * 100);
+    times.push(m.timeMs);
+    y.push(pct);
   }
   return { times, y, uniqueCount: seen.size };
 }
@@ -354,7 +374,7 @@ function buildShareCards({topFreq, topContrib, topWinChamp, topWinUsers}){
 
     // timeline
     const rowsD = sortByTime(rowsWithDates(rows));
-    const progress = calcProgress(rowsD, totalChampions);
+    const progress = calcProgressByMatch(rowsD, totalChampions);
     renderSummary(progress, totalChampions);
     renderProgressChart(progress);
 
