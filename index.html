@@ -15,10 +15,14 @@
   h2 { margin: 28px 0 8px 0; }
   .section { margin: 24px 0; padding: 16px; border: 1px solid #e5e7eb; border-radius: 12px; background:#fff; }
   .muted { color: #6b7280; font-size: 13px; }
+
+  /* layout */
   .col-2 { display:grid; grid-template-columns: 1fr; gap: var(--gap); text-align: left; }
   @media(min-width:860px){ .col-2{ grid-template-columns: 1fr 1fr; } }
   .colcol { display:flex; flex-direction:column; align-items:center; }
   .vlist { display:flex; flex-direction:column; gap:12px; align-items:center; }
+
+  /* cards */
   .card { position: relative; padding: 14px; border:1px solid #e5e7eb; border-radius: 12px; background:#fff; text-align:left; width: min(420px, 33%); }
   #champLow .card, #champHigh .card { width: 100%; }
   @media(max-width:760px){ .card{ width:100%; } }
@@ -28,16 +32,18 @@
   .champ-icon { width:28px; height:28px; border-radius:6px; object-fit:cover; background:#eee; }
   .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#f3f4f6; font-size:12px; margin-left:8px; }
 
-  /* グラフ：固定高さラッパー + PCは70%幅で中央 */
+  /* chart */
   .chart-wrap { position: relative; width: 100%; height: 420px; margin: 0 auto; }
-  @media(min-width:1024px){ .chart-wrap{ height: 460px; width: 70%; margin: 0 auto; } }
+  @media(min-width:1024px){ .chart-wrap{ height: 460px; width: 70%; margin: 0 auto; } } /* PC時は70%で中央 */
   #progress { width: 100% !important; height: 100% !important; display:block; }
 
-  /* Loading modal */
+  /* loading modal */
   .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 9999; }
   .modal { background:#fff; padding: 24px 28px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
   .spinner { width: 28px; height: 28px; border: 3px solid #e5e7eb; border-top-color: #111827; border-radius: 50%; animation: spin 1s linear infinite; display:inline-block; vertical-align: middle; margin-right:8px;}
   @keyframes spin { to { transform: rotate(360deg);} }
+
+  /* medals */
   .medal { position:absolute; top:8px; left:8px; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:12px; }
   .gold   { background: radial-gradient(circle at 30% 30%, #ffe88a, #e6b800); }
   .silver { background: radial-gradient(circle at 30% 30%, #f2f2f2, #bfbfbf); color:#111; }
@@ -45,6 +51,8 @@
   .gold-bg   { background: linear-gradient(180deg, #fff9e6, #fff5cc); }
   .silver-bg { background: linear-gradient(180deg, #f8f8f8, #efefef); }
   .bronze-bg { background: linear-gradient(180deg, #fff1e6, #ffe5d1); }
+
+  /* share cards */
   .share-cards { display:grid; gap: var(--gap); grid-template-columns: 1fr; }
   @media(min-width:860px){ .share-cards{ grid-template-columns: repeat(2, 1fr);} }
   .share-card { border:1px solid #e5e7eb; border-radius:16px; padding:16px; background:linear-gradient(180deg,#ffffff,#fafafa); text-align:left; }
@@ -66,12 +74,13 @@
   </header>
 
   <section class="section">
-    <h2>チャンピオン消化タイムライン</h2>
+    <h2>進捗タイムライン</h2>
+    <div class="muted">横軸：時間 / 縦軸：達成度</div>
     <div class="chart-wrap"><canvas id="progress"></canvas></div>
   </section>
 
   <section class="section">
-    <h2>よく選ばれたチャンピオン</h2>
+    <h2>皆が好むチャンピオン</h2>
     <div id="topChampsCards" class="vlist"></div>
   </section>
 
@@ -95,12 +104,12 @@
   </section>
 
   <section class="section">
-    <h2>最多参加リスナー Top5<span class="pill" id="malNote">マレスロアン = 0</span></h2>
+    <h2>参加回数の多いユーザー 上位5人 <span class="pill" id="malNote">総ゲーム数 = 0</span></h2>
     <div id="mostActive" class="vlist"></div>
   </section>
 
   <section class="section">
-    <h2>達成に最も貢献したリスナー Top5 <span class="pill" id="malContrib">マレスロアン = 0</span></h2>
+    <h2>達成に最も貢献したユーザー 上位5人 <span class="pill" id="malContrib">マレスロアン = 0</span></h2>
     <div class="muted">未使用チャンピオンを初めて使用済みにした回数</div>
     <div id="mostContrib" class="vlist"></div>
   </section>
@@ -116,17 +125,20 @@
 </div>
 
 <script>
+/* ====== Config ====== */
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxaWtw0J8sHbB14_TzAWxFnMnimt-tERRThff5cCn8e8DQIwLbm8pIPneomrHsDAAfS/exec";
 const MIN_GAMES_CHAMP = 3;
 const MIN_GAMES_USER  = 5;
 const EXCLUDE_FOR_ACTIVE = new Set(["マレスロアン","野良"]);
-const MAX_TICKS = 10;
+const MAX_TICKS = 8;
 
+/* ====== Helpers ====== */
 function assumedTeam(slot){ return slot <= 5 ? "Blue" : "Red"; }
 function showLoading(s){ document.getElementById('loading').style.display = s ? 'flex' : 'none'; }
+function fmt2(n){ return String(n).padStart(2,'0'); }
 function formatPct(x){ return (Math.round(x*1000)/10).toFixed(1) + "%"; }
 
-/* -------- Data Dragon -------- */
+/* ====== Data Dragon ====== */
 let DD_VER = null;
 let CHAMP_IMG_BY_JA = new Map();
 async function loadDataDragon(){
@@ -142,7 +154,7 @@ async function loadDataDragon(){
 }
 function champIconUrl(japaneseName){ return CHAMP_IMG_BY_JA.get(japaneseName) || ''; }
 
-/* -------- Fetch -------- */
+/* ====== Fetch ====== */
 async function fetchData(){
   showLoading(true);
   const [matchesRes, refsRes] = await Promise.all([
@@ -157,33 +169,21 @@ async function fetchData(){
   return { rows: matches.data, users: refs.users || [], champions: refs.champions || [] };
 }
 
-/* -------- Utils: 時刻処理 -------- */
-// startTime は "MM-DD HH:mm" 文字列（Apps Script側の仕様）。年は2000年で固定しUTCで扱う。
+/* ====== Time utils ====== */
+// Apps ScriptのstartTimeは "MM-DD HH:mm"
 function parseMDHM(s){
   const m = String(s).match(/^(\d{2})-(\d{2})\s+(\d{2}):(\d{2})$/);
   if (!m) return new Date(NaN);
   const [, MM, DD, HH, mm] = m;
   return new Date(Date.UTC(2000, Number(MM)-1, Number(DD), Number(HH), Number(mm)));
 }
-function fmt2(n){ return String(n).padStart(2,'0'); }
-function fmtMDHMms(ms){
-  const d = new Date(ms);
-  const DD = fmt2(d.getUTCDate());
-  const HH = fmt2(d.getUTCHours());
-  return `${DD} / ${HH}`;
-}
-function fmtHMms(ms){
-  const HH = fmt2(d.getUTCHours());
-  return `${HH}`;
-}
-
 function rowsWithDates(rows){
   return rows.map(r => ({ ...r, _date: parseMDHM(r.startTime) }))
              .filter(r => !isNaN(r._date));
 }
 function sortByTime(rows){ return rows.slice().sort((a,b)=> a._date - b._date); }
 
-/* 進捗（%）: xはmsで保持 */
+/* ====== Progress ====== */
 function calcProgress(sortedRows, totalChampions){
   const seen = new Set(); const y=[]; const times=[];
   for(const r of sortedRows){
@@ -194,14 +194,14 @@ function calcProgress(sortedRows, totalChampions){
   return { times, y, uniqueCount: seen.size };
 }
 
-/* 目盛を等間隔で最大6本（最初・最後は必ず含む） */
+/* ====== X ticks (max ~6) ====== */
 function buildDesiredTicks(times){
   if(times.length === 0) return [];
   const first = times[0], last = times[times.length-1];
-  if (first === last) return [first]; // 単一点対策
+  if (first === last) return [first];
 
   const ticks = [first, last];
-  const need = Math.max(0, MAX_TICKS - ticks.length); // 残り本数
+  const need = Math.max(0, MAX_TICKS - ticks.length);
   for(let i=1;i<=need;i++){
     const t = first + Math.round((last - first) * (i/(need+1)));
     ticks.push(t);
@@ -209,7 +209,7 @@ function buildDesiredTicks(times){
   return Array.from(new Set(ticks)).sort((a,b)=>a-b).slice(0, MAX_TICKS);
 }
 
-/* 頻出/勝率系 */
+/* ====== Aggregations ====== */
 function topNChampions(rows, n=5){
   const freq = new Map();
   for(const r of rows) if(r.champion) freq.set(r.champion, (freq.get(r.champion)||0)+1);
@@ -234,20 +234,20 @@ function toSortedArray(byMap, {minN=1, take=10, comparator=(a,b)=> (b.rate - a.r
     .filter(x => x.n >= minN).sort(comparator).slice(0, take);
 }
 
-/* ---------- Renderers ---------- */
+/* ====== Render: summary ====== */
 function renderSummary(progress, total){
   document.getElementById('summary').textContent =
     `Unique champions: ${progress.uniqueCount}/${total} (${Math.round(progress.uniqueCount/total*100)}%)`;
 }
 
-/* Chart（time scale, ラベルは最初のみMM-DD HH:mm、他はHH:mm、最大6本） */
+/* ====== Render: chart ====== */
 let progressChart = null;
 function renderProgressChart(progress){
   const ctx = document.getElementById('progress').getContext('2d');
   if (progressChart) progressChart.destroy();
 
-  const desiredTicks = buildDesiredTicks(progress.times);
-  const xMin = desiredTicks[0], xMax = desiredTicks[desiredTicks.length-1];
+  const ticks = buildDesiredTicks(progress.times);
+  const xMin = ticks[0], xMax = ticks[ticks.length-1];
 
   progressChart = new Chart(ctx, {
     type: 'line',
@@ -255,6 +255,10 @@ function renderProgressChart(progress){
       datasets: [{
         label: '達成率(%)',
         data: progress.times.map((t,i)=> ({ x: t, y: progress.y[i] })),
+        tension: 0,         // 直線
+        pointRadius: 0,     // 点は非表示（任意で1にしてもOK）
+        borderWidth: 2,
+        spanGaps: true
       }]
     },
     options: {
@@ -265,12 +269,10 @@ function renderProgressChart(progress){
       plugins: {
         tooltip: {
           callbacks: {
-            // 実データの時刻をそのまま表示（分は丸めない）
             label: (ctx) => {
-              const t = ctx.parsed.x; // ms
-              const d = new Date(t);
-              const HH = String(d.getUTCHours()).padStart(2,'0');
-              const mm = String(d.getUTCMinutes()).padStart(2,'0');
+              const d = new Date(ctx.parsed.x);
+              const HH = fmt2(d.getUTCHours());
+              const mm = fmt2(d.getUTCMinutes());
               return `達成率 ${ctx.parsed.y}% @ ${HH}:${mm}`;
             }
           }
@@ -280,20 +282,23 @@ function renderProgressChart(progress){
         x: {
           type: 'time',
           bounds: 'ticks',
-          min: xMin,
-          max: xMax,
+          min: xMin, max: xMax,
           afterBuildTicks: (scale) => {
-            scale.ticks = desiredTicks.map(v => ({ value: v }));
+            scale.ticks = ticks.map(v => ({ value: v }));
           },
           ticks: {
             autoSkip: false,
             maxRotation: 0,
             callback: (value) => {
-              // 最初だけ「MM-DD HH:mm」、それ以外は「HH:mm」
-              if (value === xMin) return fmtMDHMms(value);
-              return fmtHMms(value);
+              const d = new Date(Number(value));
+              const HH = fmt2(d.getUTCHours());
+              const DD = fmt2(d.getUTCDate());
+              // 最初だけ「DD日/HH時」、以降は「HH」
+              if (value === xMin) return `${DD}日/${HH}時`;
+              return `${HH}`;
             }
-          }
+          },
+          grid: { display: true }
         },
         y: { min: 0, max: 100, ticks: { stepSize: 50, callback: v => v + '%' } }
       }
@@ -301,6 +306,7 @@ function renderProgressChart(progress){
   });
 }
 
+/* ====== Render: lists ====== */
 function mountVList(elId, rows, mapper){
   const el = document.getElementById(elId);
   el.innerHTML = "";
@@ -321,6 +327,8 @@ function medalizeTop3(containerSelector){
     el.classList.add(i===0?'gold-bg':i===1?'silver-bg':'bronze-bg','has-medal');
   });
 }
+
+/* ====== Render: share cards ====== */
 function buildShareCards({topFreq, topContrib, topWinChamp, topWinUsers}){
   const host = document.getElementById('shareCards'); host.innerHTML = "";
   const mk = (title, lines) => {
@@ -338,19 +346,19 @@ function buildShareCards({topFreq, topContrib, topWinChamp, topWinUsers}){
   mk("✨ 達成に最も貢献", [ topContrib[0] ? `${topContrib[0].user} / ${topContrib[0].count}回` : '-' ]);
 }
 
-/* ---------- Main ---------- */
+/* ====== Main ====== */
 (async()=>{
   try{
     const {rows, champions} = await fetchData();
     const totalChampions = champions.length > 0 ? champions.length : 171;
 
-    // タイムライン
+    // timeline
     const rowsD = sortByTime(rowsWithDates(rows));
     const progress = calcProgress(rowsD, totalChampions);
     renderSummary(progress, totalChampions);
     renderProgressChart(progress);
 
-    // 頻出チャンピオン（5件）
+    // top freq champs
     const freq = topNChampions(rowsD, 5);
     mountVList('topChampsCards', freq, (r)=> {
       const url = champIconUrl(r.champion);
@@ -364,7 +372,7 @@ function buildShareCards({topFreq, topContrib, topWinChamp, topWinUsers}){
         </div>`;
     });
 
-    // 勝率（チャンピオン n≥3）
+    // winrate by champion (n≥3)
     const byChamp = summarizeWins(rowsD, r => r.champion);
     const champHigh = toSortedArray(byChamp, { minN: MIN_GAMES_CHAMP, take: 5, comparator: cmpHigh });
     const champLow  = toSortedArray(byChamp, { minN: MIN_GAMES_CHAMP, take: 5, comparator: cmpLow  });
@@ -391,13 +399,13 @@ function buildShareCards({topFreq, topContrib, topWinChamp, topWinUsers}){
         </div>`;
     });
 
-    // 勝率（ユーザー n≥5）
+    // winrate by user (n≥5)
     const byUser = summarizeWins(rowsD, r => r.user);
     const userHigh = toSortedArray(byUser, { minN: MIN_GAMES_USER, take: 5, comparator: cmpHigh });
     mountVList('userHigh', userHigh, (r)=> `<div class="title">${r.name}</div><div>勝率 ${formatPct(r.rate)} <span class="muted">n=${r.n}</span></div>`);
     medalizeTop3('#userHigh');
 
-    // 参加回数（除外つき）
+    // most active (exclude)
     let malCount = 0;
     const activeMap = new Map();
     for(const r of rowsD){
@@ -406,7 +414,7 @@ function buildShareCards({topFreq, topContrib, topWinChamp, topWinUsers}){
       if(EXCLUDE_FOR_ACTIVE.has(r.user)) continue;
       activeMap.set(r.user, (activeMap.get(r.user)||0)+1);
     }
-    document.getElementById('malNote').textContent = `除外: マレスロアン = ${malCount}`;
+    document.getElementById('malNote').textContent = `マレスロアン = ${malCount}`;
     const mostActive = [...activeMap.entries()]
       .sort((a,b)=> (b[1]-a[1]) || a[0].localeCompare(b[0],'ja'))
       .slice(0,5)
@@ -414,7 +422,7 @@ function buildShareCards({topFreq, topContrib, topWinChamp, topWinUsers}){
     mountVList('mostActive', mostActive, (r)=> `<div class="title">${r.name}</div><div>参加 ${r.count} 回</div>`);
     medalizeTop3('#mostActive');
 
-    // 達成貢献（初使用）※マレスロアン除外
+    // first-use contributors (exclude マレスロアン)
     const seen = new Set(); const contribMap = new Map();
     let malContrib = 0;
     for(const r of rowsD){
@@ -434,7 +442,7 @@ function buildShareCards({topFreq, topContrib, topWinChamp, topWinUsers}){
     mountVList('mostContrib', contrib, (r)=> `<div class="title">${r.user}</div><div>初使用 ${r.count} 体</div>`);
     medalizeTop3('#mostContrib');
 
-    // 共有カード
+    // share cards
     buildShareCards({
       topFreq: freq,
       topContrib: contrib,
