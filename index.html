@@ -224,13 +224,18 @@ function renderProgressChart(progress){
       scales: {
         x: {
           ticks: {
-            autoSkip: false,      // ← 自動間引きに任せず、コールバックで制御
+            autoSkip: false,
             maxRotation: 0,
             callback: function(value, index) {
-              const lbl = this.getLabelForValue(value); // "HH:mm" または "MM-dd HH:mm"
-              const isDayChange = lbl.includes('-');    // "MM-dd HH:mm" のときのみ '-' を含む
-              // 日付跨ぎは必ず表示。それ以外は step 間隔のみ表示
-              if (isDayChange) return lbl;
+              const lbl = this.getLabelForValue(value); 
+              const isDayChange = lbl.includes('-'); // "MM-DD HH:mm" の場合
+              if (isDayChange) {
+                const parts = lbl.split(' '); // ["MM-DD", "HH:mm"]
+                if (parts.length === 2) {
+                  return parts[0] + '\n' + parts[1]; // 2段表示
+                }
+                return lbl;
+              }
               return (index % step === 0) ? lbl : '';
             }
           }
