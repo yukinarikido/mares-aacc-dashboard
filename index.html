@@ -67,24 +67,23 @@
 
   <section class="section">
     <h2>チャンピオン消化タイムライン</h2>
-    <div class="muted">横軸：最初のみ「MM-DD HH:mm」、以降は「HH:mm」（全体で約6本） / 縦軸：ユニークチャンピオン累積%</div>
     <div class="chart-wrap"><canvas id="progress"></canvas></div>
   </section>
 
   <section class="section">
-    <h2>頻出チャンピオン上位5体</h2>
+    <h2>よく選ばれたチャンピオン</h2>
     <div id="topChampsCards" class="vlist"></div>
   </section>
 
   <section class="section">
-    <h2>勝率の低い/高いチャンピオン（各5体）<span class="pill">n ≥ 3</span></h2>
+    <h2>勝率の低い/高いチャンピオン<span class="pill">n ≥ 3</span></h2>
     <div class="col-2">
       <div class="colcol">
-        <h3 style="margin:0 0 10px 0;">低いチャンピオン</h3>
+        <h3 style="margin:0 0 10px 0;">勝率ワースト5</h3>
         <div id="champLow"  class="vlist"></div>
       </div>
       <div class="colcol">
-        <h3 style="margin:0 0 10px 0;">高いチャンピオン</h3>
+        <h3 style="margin:0 0 10px 0;">勝率トップ5</h3>
         <div id="champHigh" class="vlist"></div>
       </div>
     </div>
@@ -173,7 +172,7 @@ function fmtMDHMms(ms){
   const MM = String(d.getUTCMonth()+1).padStart(2,'0');
   const DD = String(d.getUTCDate()).padStart(2,'0');
   const HH = String(d.getUTCHours()).padStart(2,'0');
-  return `${DD} ${HH}`;  // ← 分は常に00
+  return `${DD}/${HH}`;  // ← 分は常に00
 }
 function fmtHMms(ms){
   const d = new Date(ms);
@@ -259,11 +258,6 @@ function renderProgressChart(progress){
       datasets: [{
         label: '達成率(%)',
         data: progress.times.map((t,i)=> ({ x: t, y: progress.y[i] })),
-        tension: 0,            // ← 補間オフ（直線）
-        pointRadius: 0,        // ← 点を描かない
-        pointHoverRadius: 3,   // ホバー時だけ小さく表示
-        borderWidth: 2,
-        spanGaps: true
       }]
     },
     options: {
