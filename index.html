@@ -265,6 +265,20 @@ function renderProgressChart(progress){
       maintainAspectRatio: false,
       animation: false,
       parsing: false,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            // 実データの時刻をそのまま表示（分は丸めない）
+            label: (ctx) => {
+              const t = ctx.parsed.x; // ms
+              const d = new Date(t);
+              const HH = String(d.getUTCHours()).padStart(2,'0');
+              const mm = String(d.getUTCMinutes()).padStart(2,'0');
+              return `達成率 ${ctx.parsed.y}% @ ${HH}:${mm}`;
+            }
+          }
+        }
+      },
       scales: {
         x: {
           type: 'time',
