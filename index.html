@@ -122,7 +122,7 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxaWtw0J8sHbB14
 const MIN_GAMES_CHAMP = 3;
 const MIN_GAMES_USER  = 5;
 const EXCLUDE_FOR_ACTIVE = new Set(["マレスロアン","野良"]);
-const MAX_TICKS = 6;
+const MAX_TICKS = 10;
 
 function assumedTeam(slot){ return slot <= 5 ? "Blue" : "Red"; }
 function showLoading(s){ document.getElementById('loading').style.display = s ? 'flex' : 'none'; }
