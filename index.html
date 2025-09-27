@@ -4,7 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>ARAM Progress Dashboard</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
   :root { --gap: 20px; --maxw: 1280px; }
@@ -19,7 +20,7 @@
   .colcol { display:flex; flex-direction:column; align-items:center; }
   .vlist { display:flex; flex-direction:column; gap:12px; align-items:center; }
   .card { position: relative; padding: 14px; border:1px solid #e5e7eb; border-radius: 12px; background:#fff; text-align:left; width: min(420px, 33%); }
-  #champLow .card, #champHigh .card { width: 100%; } /* 低/高チャンピオンのみ全幅 */
+  #champLow .card, #champHigh .card { width: 100%; }
   @media(max-width:760px){ .card{ width:100%; } }
   .card .title { font-size:16px; font-weight:600; margin:0 0 6px 0; }
   .card.has-medal .title { padding-left: 40px; }
@@ -27,15 +28,9 @@
   .champ-icon { width:28px; height:28px; border-radius:6px; object-fit:cover; background:#eee; }
   .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#f3f4f6; font-size:12px; margin-left:8px; }
 
-  /* ▼ タイムライン：固定高さの「ラッパー」を使う（ここだけで高さ管理） */
+  /* グラフ：固定高さラッパー + PCは70%幅で中央 */
   .chart-wrap { position: relative; width: 100%; height: 420px; margin: 0 auto; }
-  @media(min-width:1024px){
-    .chart-wrap{
-      width: 70%;
-      margin: 0 auto;   /* 中央揃え */
-    }
-  }
-  /* キャンバス自体は親の100%を埋めるだけ（高さを直接いじらない） */
+  @media(min-width:1024px){ .chart-wrap{ height: 460px; width: 70%; margin: 0 auto; } }
   #progress { width: 100% !important; height: 100% !important; display:block; }
 
   /* Loading modal */
@@ -43,7 +38,6 @@
   .modal { background:#fff; padding: 24px 28px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
   .spinner { width: 28px; height: 28px; border: 3px solid #e5e7eb; border-top-color: #111827; border-radius: 50%; animation: spin 1s linear infinite; display:inline-block; vertical-align: middle; margin-right:8px;}
   @keyframes spin { to { transform: rotate(360deg);} }
-  /* Medals */
   .medal { position:absolute; top:8px; left:8px; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:12px; }
   .gold   { background: radial-gradient(circle at 30% 30%, #ffe88a, #e6b800); }
   .silver { background: radial-gradient(circle at 30% 30%, #f2f2f2, #bfbfbf); color:#111; }
@@ -51,7 +45,6 @@
   .gold-bg   { background: linear-gradient(180deg, #fff9e6, #fff5cc); }
   .silver-bg { background: linear-gradient(180deg, #f8f8f8, #efefef); }
   .bronze-bg { background: linear-gradient(180deg, #fff1e6, #ffe5d1); }
-  /* Share cards */
   .share-cards { display:grid; gap: var(--gap); grid-template-columns: 1fr; }
   @media(min-width:860px){ .share-cards{ grid-template-columns: repeat(2, 1fr);} }
   .share-card { border:1px solid #e5e7eb; border-radius:16px; padding:16px; background:linear-gradient(180deg,#ffffff,#fafafa); text-align:left; }
@@ -74,8 +67,8 @@
 
   <section class="section">
     <h2>チャンピオン消化タイムライン</h2>
-    <div class="muted">横軸：StartTime（通常はHH:mm、日付切替点はMM-dd HH:mm） / 縦軸：ユニークチャンピオン累積%</div>
-    <div class="chart-wrap"><canvas id="progress"></canvas></div> <!-- ← ラッパーを追加 -->
+    <div class="muted">横軸：StartTime（最初はMM-DD HH:mm、各日00:00はMM-DD 00:00、全体で最大6本） / 縦軸：ユニークチャンピオン累積%</div>
+    <div class="chart-wrap"><canvas id="progress"></canvas></div>
   </section>
 
   <section class="section">
@@ -129,12 +122,13 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxaWtw0J8sHbB14
 const MIN_GAMES_CHAMP = 3;
 const MIN_GAMES_USER  = 5;
 const EXCLUDE_FOR_ACTIVE = new Set(["マレスロアン","野良"]);
-function assumedTeam(slot){ return slot <= 5 ? "Blue" : "Red"; }
+const MAX_TICKS = 6;
 
+function assumedTeam(slot){ return slot <= 5 ? "Blue" : "Red"; }
 function showLoading(s){ document.getElementById('loading').style.display = s ? 'flex' : 'none'; }
 function formatPct(x){ return (Math.round(x*1000)/10).toFixed(1) + "%"; }
 
-/* Data Dragon */
+/* -------- Data Dragon -------- */
 let DD_VER = null;
 let CHAMP_IMG_BY_JA = new Map();
 async function loadDataDragon(){
@@ -150,7 +144,7 @@ async function loadDataDragon(){
 }
 function champIconUrl(japaneseName){ return CHAMP_IMG_BY_JA.get(japaneseName) || ''; }
 
-/* Fetch */
+/* -------- Fetch -------- */
 async function fetchData(){
   showLoading(true);
   const [matchesRes, refsRes] = await Promise.all([
@@ -165,56 +159,96 @@ async function fetchData(){
   return { rows: matches.data, users: refs.users || [], champions: refs.champions || [] };
 }
 
-function sortByTime(rows){ return rows.slice().sort((a,b)=> String(a.startTime).localeCompare(String(b.startTime))); }
-function buildTimelineLabels(rows){
-  // rows: startTime順にソート済み [{startTime: Date, ...}]
-  const labels = [];
-  if (rows.length === 0) return labels;
-
-  // 1. 最初のデータ
-  let first = rows[0].startTime;
-  labels.push(formatLabel(first, true));
-
-  // 2. 各日の 00:00
-  let curDay = new Date(first);
-  curDay.setHours(0,0,0,0);
-  while (curDay <= rows[rows.length-1].startTime) {
-    const lblDate = new Date(curDay);
-    if (lblDate > first) {
-      labels.push(formatLabel(lblDate, true)); // "MM-DD 00:00"
-    }
-    curDay.setDate(curDay.getDate() + 1);
+/* -------- Utils: 時刻処理 -------- */
+// startTime は "MM-DD HH:mm" 形式の文字列。年は仮で2000年に固定。
+function parseMDHM(s){
+  // s: "09-26 19:00" or "19:00"
+  const m = String(s).match(/^(\d{2})-(\d{2})\s+(\d{2}):(\d{2})$/);
+  if (m){
+    const [_, MM, DD, HH, mm] = m;
+    const d = new Date(Date.UTC(2000, Number(MM)-1, Number(DD), Number(HH), Number(mm)));
+    return d;
   }
-
-  // 3. 最後のデータ
-  let last = rows[rows.length-1].startTime;
-  labels.push(formatLabel(last, true));
-
-  // 4. 必要なら間引きで等間隔に追加
-  const step = Math.ceil(rows.length / 6);
-  for (let i=step; i<rows.length-1; i+=step){
-    const t = rows[i].startTime;
-    labels.push(formatLabel(t, false)); // 通常は "HH:mm"
+  const m2 = String(s).match(/^(\d{2}):(\d{2})$/);
+  if (m2){
+    const [_, HH, mm] = m2;
+    const d = new Date(Date.UTC(2000, 1, 1, Number(HH), Number(mm))); // ダミー日付
+    return d;
   }
-
-  // 5. 重複除去 & ソート
-  const uniq = [...new Set(labels)];
-  return uniq.sort((a,b)=> new Date(a.replace(/-.*/,"") || a) - new Date(b.replace(/-.*/,"") || b));
+  return new Date(NaN);
 }
-
-function formatLabel(dateObj, withDay){
-  const MM = String(dateObj.getMonth()+1).padStart(2,'0');
-  const DD = String(dateObj.getDate()).padStart(2,'0');
-  const HH = String(dateObj.getHours()).padStart(2,'0');
-  const mm = String(dateObj.getMinutes()).padStart(2,'0');
+function fmt2(n){ return String(n).padStart(2,'0'); }
+function formatLabel(date, withDay){
+  const MM = fmt2(date.getUTCMonth()+1), DD = fmt2(date.getUTCDate());
+  const HH = fmt2(date.getUTCHours()), mm = fmt2(date.getUTCMinutes());
   return withDay ? `${MM}-${DD} ${HH}:${mm}` : `${HH}:${mm}`;
 }
-
-function calcProgress(rows, totalChampions){
-  const sorted = sortByTime(rows); const seen = new Set(); const y=[];
-  for(const r of sorted){ if(r.champion) seen.add(r.champion); y.push(Math.round(seen.size/totalChampions*100)); }
-  return { labels: buildTimelineLabels(sorted), y, uniqueCount: seen.size };
+function startOfUTCDate(d){
+  const dd = new Date(d); dd.setUTCHours(0,0,0,0); return dd;
 }
+function addDaysUTC(d, n){
+  const dd = new Date(d); dd.setUTCDate(dd.getUTCDate()+n); return dd;
+}
+
+/* rows: [{ startTime: "MM-DD HH:mm", ...}] を Date へ */
+function rowsWithDates(rows){
+  return rows.map(r => ({ ...r, _date: parseMDHM(r.startTime) }))
+             .filter(r => !isNaN(r._date));
+}
+function sortByTime(rows){ return rows.slice().sort((a,b)=> a._date - b._date); }
+
+/* 進捗計算（%） */
+function calcProgress(sortedRows, totalChampions){
+  const seen = new Set(); const y=[]; const times=[];
+  for(const r of sortedRows){ if(r.champion) seen.add(r.champion); y.push(Math.round(seen.size/totalChampions*100)); times.push(r._date); }
+  return { times, y, uniqueCount: seen.size };
+}
+
+/* 横軸tickの生成：最初、各日00:00（データ有無に関わらず）、最後、残りは等間隔で追加して最大6本 */
+function buildDesiredTicks(times){
+  if(times.length === 0) return [];
+  const first = times[0], last = times[times.length-1];
+  const ticks = [];
+  // 最初
+  ticks.push(first.getTime());
+  // 各日00:00
+  let cur = startOfUTCDate(first);
+  // 次の日から
+  cur = addDaysUTC(cur, 1);
+  while (cur <= last){
+    ticks.push(cur.getTime());
+    cur = addDaysUTC(cur, 1);
+  }
+  // 最後
+  if (last.getTime() !== ticks[ticks.length-1]) ticks.push(last.getTime());
+
+  // 等間隔で補充
+  if (ticks.length < MAX_TICKS){
+    const need = MAX_TICKS - ticks.length;
+    const span = last.getTime() - first.getTime();
+    if (span > 0){
+      for(let i=1;i<=need;i++){
+        const t = first.getTime() + Math.round(span * (i/(need+1)));
+        ticks.push(t);
+      }
+    }
+  }
+
+  // 重複除去＆ソート
+  const uniq = Array.from(new Set(ticks)).sort((a,b)=>a-b);
+  // 最大6本に抑制（多い場合は等間隔間引き）
+  if (uniq.length > MAX_TICKS){
+    const step = Math.ceil(uniq.length / MAX_TICKS);
+    const picked = [];
+    for(let i=0;i<uniq.length;i+=step) picked.push(uniq[i]);
+    // 端が落ちたら最後を足す
+    if (picked[picked.length-1] !== uniq[uniq.length-1]) picked.push(uniq[uniq.length-1]);
+    return picked.slice(0, MAX_TICKS);
+  }
+  return uniq;
+}
+
+/* 頻出/勝率系 */
 function topNChampions(rows, n=5){
   const freq = new Map();
   for(const r of rows) if(r.champion) freq.set(r.champion, (freq.get(r.champion)||0)+1);
@@ -232,8 +266,8 @@ function summarizeWins(rows, keyFn){
   }
   return by;
 }
-function cmpHigh(a,b){ if (b.rate !== a.rate) return b.rate - a.rate; if (b.n !== a.n) return b.n - a.n; return a.name.localeCompare(b.name, 'ja'); }
-function cmpLow (a,b){ if (a.rate !== b.rate) return a.rate - b.rate; if (b.n !== a.n) return b.n - a.n; return a.name.localeCompare(b.name, 'ja'); }
+function cmpHigh(a,b){ if (b.rate !== a.rate) return b.rate - a.rate; if (b.n !== a.n) return b.n - a.n; return a.name.localeCompare(b.name,'ja'); }
+function cmpLow (a,b){ if (a.rate !== b.rate) return a.rate - b.rate; if (b.n !== a.n) return b.n - a.n; return a.name.localeCompare(b.name,'ja'); }
 function toSortedArray(byMap, {minN=1, take=10, comparator=(a,b)=> (b.rate - a.rate)}={}){
   return [...byMap.entries()].map(([name,{w,n}]) => ({ name, w, n, rate: n>0 ? w/n : 0 }))
     .filter(x => x.n >= minN).sort(comparator).slice(0, take);
@@ -245,44 +279,64 @@ function renderSummary(progress, total){
     `Unique champions: ${progress.uniqueCount}/${total} (${Math.round(progress.uniqueCount/total*100)}%)`;
 }
 
+/* Chart（time scale + カスタムtick） */
 let progressChart = null;
-
 function renderProgressChart(progress){
   const ctx = document.getElementById('progress').getContext('2d');
   if (progressChart) progressChart.destroy();
 
-  const labels = progress.labels;         // ["09-26 19:00", "19:20", ..., "09-27 00:00", ...]
-  const desiredTicks = 8;                 // 横軸は概ね8本に
-  const step = Math.max(1, Math.ceil(labels.length / desiredTicks));
+  const desiredTicks = buildDesiredTicks(progress.times);
 
   progressChart = new Chart(ctx, {
     type: 'line',
-    data: { labels, datasets: [{ label: '達成率(%)', data: progress.y }] },
+    data: {
+      datasets: [{
+        label: '達成率(%)',
+        data: progress.times.map((t,i)=> ({ x: t, y: progress.y[i] }))
+      }]
+    },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       animation: false,
+      parsing: false,
       scales: {
         x: {
+          type: 'time',
+          time: { unit: 'hour', displayFormats: { hour: 'HH:mm' } },
           ticks: {
-            source: 'labels',
-            autoSkip: false,
+            source: 'auto',
             maxRotation: 0,
-            // ← ここがポイント：配列を返して2段表示。日付跨ぎは必ず表示、それ以外は間引き。
-            callback: function(value, index) {
-              const lbl = this.getLabelForValue(value);   // "MM-DD HH:mm" または "HH:mm"
-              const isDayChange = lbl.includes('-');      // 日付文字列が含まれるとき
-              if (isDayChange) {
-                const parts = lbl.split(/\s+/);           // ["MM-DD","HH:mm"]
-                return [parts[0], parts[1] || ''];        // 2行表示
+            autoSkip: false,
+            callback: (value, index, ticks) => {
+              const d = new Date(value);
+              const HH = String(d.getUTCHours()).padStart(2,'0');
+              const mm = String(d.getUTCMinutes()).padStart(2,'0');
+              const isMidnight = HH === '00' && mm === '00';
+              const isFirst = value === desiredTicks[0];
+              const isLast  = value === desiredTicks[desiredTicks.length-1];
+              if (isFirst || isMidnight) {
+                const MM = String(d.getUTCMonth()+1).padStart(2,'0');
+                const DD = String(d.getUTCDate()).padStart(2,'0');
+                return [`${MM}-${DD}`, `${HH}:${mm}`]; // 2段表示
               }
-              return (index % step === 0) ? lbl : '';     // 通常は間引き
+              if (isLast) {
+                const MM = String(d.getUTCMonth()+1).padStart(2,'0');
+                const DD = String(d.getUTCDate()).padStart(2,'0');
+                return [`${MM}-${DD}`, `${HH}:${mm}`];
+              }
+              return `${HH}:${mm}`;
             }
-          }
+          },
+          // afterBuildTicksで、望む目盛だけに置き換える
+          afterBuildTicks: (scale) => {
+            scale.ticks = desiredTicks.map(v => ({ value: v }));
+            return;
+          },
+          grid: { display: true }
         },
         y: {
-          min: 0,
-          max: 100,
+          min: 0, max: 100,
           ticks: { stepSize: 50, callback: v => v + '%' }
         }
       }
@@ -310,8 +364,6 @@ function medalizeTop3(containerSelector){
     el.classList.add(i===0?'gold-bg':i===1?'silver-bg':'bronze-bg','has-medal');
   });
 }
-
-/* 共有カード */
 function buildShareCards({topFreq, topContrib, topWinChamp, topWinUsers}){
   const host = document.getElementById('shareCards'); host.innerHTML = "";
   const mk = (title, lines) => {
@@ -335,13 +387,14 @@ function buildShareCards({topFreq, topContrib, topWinChamp, topWinUsers}){
     const {rows, champions} = await fetchData();
     const totalChampions = champions.length > 0 ? champions.length : 171;
 
-    // 1) タイムライン
-    const progress = calcProgress(rows, totalChampions);
+    // タイムライン用にDate化→ソート
+    const rowsD = sortByTime(rowsWithDates(rows));
+    const progress = calcProgress(rowsD, totalChampions);
     renderSummary(progress, totalChampions);
     renderProgressChart(progress);
 
-    // 2) 頻出チャンピオン（5件：縦カード＋アイコン）
-    const freq = topNChampions(rows, 5);
+    // 頻出チャンピオン（5件）
+    const freq = topNChampions(rowsD, 5);
     mountVList('topChampsCards', freq, (r)=> {
       const url = champIconUrl(r.champion);
       return `
@@ -354,8 +407,8 @@ function buildShareCards({topFreq, topContrib, topWinChamp, topWinUsers}){
         </div>`;
     });
 
-    // 3) 勝率（チャンピオン n≥3） 左=低 / 右=高
-    const byChamp = summarizeWins(rows, r => r.champion);
+    // 勝率（チャンピオン n≥3） 左=低 / 右=高
+    const byChamp = summarizeWins(rowsD, r => r.champion);
     const champHigh = toSortedArray(byChamp, { minN: MIN_GAMES_CHAMP, take: 5, comparator: cmpHigh });
     const champLow  = toSortedArray(byChamp, { minN: MIN_GAMES_CHAMP, take: 5, comparator: cmpLow  });
     mountVList('champHigh', champHigh, (r)=> {
@@ -381,16 +434,16 @@ function buildShareCards({topFreq, topContrib, topWinChamp, topWinUsers}){
         </div>`;
     });
 
-    // 4) 勝率（ユーザー n≥5）
-    const byUser = summarizeWins(rows, r => r.user);
+    // 勝率（ユーザー n≥5）
+    const byUser = summarizeWins(rowsD, r => r.user);
     const userHigh = toSortedArray(byUser, { minN: MIN_GAMES_USER, take: 5, comparator: cmpHigh });
     mountVList('userHigh', userHigh, (r)=> `<div class="title">${r.name}</div><div>勝率 ${formatPct(r.rate)} <span class="muted">n=${r.n}</span></div>`);
     medalizeTop3('#userHigh');
 
-    // 5) 参加回数（除外つき）
+    // 参加回数（除外つき）
     let malCount = 0;
     const activeMap = new Map();
-    for(const r of rows){
+    for(const r of rowsD){
       if(!r.user) continue;
       if(r.user === "マレスロアン") malCount++;
       if(EXCLUDE_FOR_ACTIVE.has(r.user)) continue;
@@ -404,10 +457,10 @@ function buildShareCards({topFreq, topContrib, topWinChamp, topWinUsers}){
     mountVList('mostActive', mostActive, (r)=> `<div class="title">${r.name}</div><div>参加 ${r.count} 回</div>`);
     medalizeTop3('#mostActive');
 
-    // 6) 達成貢献（初使用）※マレスロアン除外
+    // 達成貢献（初使用）※マレスロアン除外
     const seen = new Set(); const contribMap = new Map();
     let malContrib = 0;
-    for(const r of sortByTime(rows)){
+    for(const r of rowsD){
       if(!r.champion) continue;
       if(!seen.has(r.champion)){
         seen.add(r.champion);
@@ -424,7 +477,7 @@ function buildShareCards({topFreq, topContrib, topWinChamp, topWinUsers}){
     mountVList('mostContrib', contrib, (r)=> `<div class="title">${r.user}</div><div>初使用 ${r.count} 体</div>`);
     medalizeTop3('#mostContrib');
 
-    // 7) 共有カード
+    // 共有カード
     buildShareCards({
       topFreq: freq,
       topContrib: contrib,
