@@ -166,14 +166,50 @@ async function fetchData(){
 }
 
 function sortByTime(rows){ return rows.slice().sort((a,b)=> String(a.startTime).localeCompare(String(b.startTime))); }
-function buildTimelineLabels(sortedRows){
-  const labels = []; let prevDay = "";
-  for(const r of sortedRows){
-    const s = String(r.startTime || "");  const day = s.slice(0,5);  const hm  = s.slice(6);
-    if(labels.length === 0 || day !== prevDay){ labels.push(s); prevDay = day; } else { labels.push(hm); }
+function buildTimelineLabels(rows){
+  // rows: startTime順にソート済み [{startTime: Date, ...}]
+  const labels = [];
+  if (rows.length === 0) return labels;
+
+  // 1. 最初のデータ
+  let first = rows[0].startTime;
+  labels.push(formatLabel(first, true));
+
+  // 2. 各日の 00:00
+  let curDay = new Date(first);
+  curDay.setHours(0,0,0,0);
+  while (curDay <= rows[rows.length-1].startTime) {
+    const lblDate = new Date(curDay);
+    if (lblDate > first) {
+      labels.push(formatLabel(lblDate, true)); // "MM-DD 00:00"
+    }
+    curDay.setDate(curDay.getDate() + 1);
   }
-  return labels;
+
+  // 3. 最後のデータ
+  let last = rows[rows.length-1].startTime;
+  labels.push(formatLabel(last, true));
+
+  // 4. 必要なら間引きで等間隔に追加
+  const step = Math.ceil(rows.length / 6);
+  for (let i=step; i<rows.length-1; i+=step){
+    const t = rows[i].startTime;
+    labels.push(formatLabel(t, false)); // 通常は "HH:mm"
+  }
+
+  // 5. 重複除去 & ソート
+  const uniq = [...new Set(labels)];
+  return uniq.sort((a,b)=> new Date(a.replace(/-.*/,"") || a) - new Date(b.replace(/-.*/,"") || b));
 }
+
+function formatLabel(dateObj, withDay){
+  const MM = String(dateObj.getMonth()+1).padStart(2,'0');
+  const DD = String(dateObj.getDate()).padStart(2,'0');
+  const HH = String(dateObj.getHours()).padStart(2,'0');
+  const mm = String(dateObj.getMinutes()).padStart(2,'0');
+  return withDay ? `${MM}-${DD} ${HH}:${mm}` : `${HH}:${mm}`;
+}
+
 function calcProgress(rows, totalChampions){
   const sorted = sortByTime(rows); const seen = new Set(); const y=[];
   for(const r of sorted){ if(r.champion) seen.add(r.champion); y.push(Math.round(seen.size/totalChampions*100)); }
