@@ -208,19 +208,42 @@ function renderSummary(progress, total){
 let progressChart = null;
 function renderProgressChart(progress){
   const ctx = document.getElementById('progress').getContext('2d');
-  if (progressChart) { progressChart.destroy(); } // 再入場/再取得時の肥大化防止
+  if (progressChart) { progressChart.destroy(); }
+
+  const labels = progress.labels;
+  const desiredTicks = 8; // 目安：PCで8本程度に
+  const step = Math.max(1, Math.ceil(labels.length / desiredTicks));
+
   progressChart = new Chart(ctx, {
     type: 'line',
-    data: { labels: progress.labels, datasets: [{ label: '達成率(%)', data: progress.y }] },
+    data: { labels, datasets: [{ label: '達成率(%)', data: progress.y }] },
     options: {
-      responsive:true,
-      maintainAspectRatio:false,
-      animation:false,
-      scales:{ y:{ min:0, max:100, ticks:{ stepSize:50, callback:(v)=> v + '%' } } }
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      scales: {
+        x: {
+          ticks: {
+            autoSkip: false,      // ← 自動間引きに任せず、コールバックで制御
+            maxRotation: 0,
+            callback: function(value, index) {
+              const lbl = this.getLabelForValue(value); // "HH:mm" または "MM-dd HH:mm"
+              const isDayChange = lbl.includes('-');    // "MM-dd HH:mm" のときのみ '-' を含む
+              // 日付跨ぎは必ず表示。それ以外は step 間隔のみ表示
+              if (isDayChange) return lbl;
+              return (index % step === 0) ? lbl : '';
+            }
+          }
+        },
+        y: {
+          min: 0,
+          max: 100,
+          ticks: { stepSize: 50, callback: v => v + '%' }
+        }
+      }
     }
   });
 }
-
 function mountVList(elId, rows, mapper){
   const el = document.getElementById(elId);
   el.innerHTML = "";
