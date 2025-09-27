@@ -170,14 +170,15 @@ function parseMDHM(s){
 function fmt2(n){ return String(n).padStart(2,'0'); }
 function fmtMDHMms(ms){
   const d = new Date(ms);
-  const MM = fmt2(d.getUTCMonth()+1), DD = fmt2(d.getUTCDate());
-  const HH = fmt2(d.getUTCHours()),   mm = fmt2(d.getUTCMinutes());
-  return `${MM}-${DD} ${HH}:${mm}`;
+  const MM = String(d.getUTCMonth()+1).padStart(2,'0');
+  const DD = String(d.getUTCDate()).padStart(2,'0');
+  const HH = String(d.getUTCHours()).padStart(2,'0');
+  return `${MM}-${DD} ${HH}:00`;  // ← 分は常に00
 }
 function fmtHMms(ms){
   const d = new Date(ms);
-  const HH = fmt2(d.getUTCHours()), mm = fmt2(d.getUTCMinutes());
-  return `${HH}:${mm}`;
+  const HH = String(d.getUTCHours()).padStart(2,'0');
+  return `${HH}:00`;              // ← 分は常に00
 }
 
 function rowsWithDates(rows){
