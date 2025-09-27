@@ -209,14 +209,14 @@ function renderSummary(progress, total){
     `Unique champions: ${progress.uniqueCount}/${total} (${Math.round(progress.uniqueCount/total*100)}%)`;
 }
 
-/* ▼ Chart.js: 再描画前に destroy、maintainAspectRatio:false + 親固定高さ */
 let progressChart = null;
+
 function renderProgressChart(progress){
   const ctx = document.getElementById('progress').getContext('2d');
-  if (progressChart) { progressChart.destroy(); }
+  if (progressChart) progressChart.destroy();
 
-  const labels = progress.labels;
-  const desiredTicks = 8; // 目安：PCで8本程度に
+  const labels = progress.labels;         // ["09-26 19:00", "19:20", ..., "09-27 00:00", ...]
+  const desiredTicks = 8;                 // 横軸は概ね8本に
   const step = Math.max(1, Math.ceil(labels.length / desiredTicks));
 
   progressChart = new Chart(ctx, {
@@ -229,19 +229,18 @@ function renderProgressChart(progress){
       scales: {
         x: {
           ticks: {
+            source: 'labels',
             autoSkip: false,
             maxRotation: 0,
+            // ← ここがポイント：配列を返して2段表示。日付跨ぎは必ず表示、それ以外は間引き。
             callback: function(value, index) {
-              const lbl = this.getLabelForValue(value); 
-              const isDayChange = lbl.includes('-'); // "MM-DD HH:mm" の場合
+              const lbl = this.getLabelForValue(value);   // "MM-DD HH:mm" または "HH:mm"
+              const isDayChange = lbl.includes('-');      // 日付文字列が含まれるとき
               if (isDayChange) {
-                const parts = lbl.split(' '); // ["MM-DD", "HH:mm"]
-                if (parts.length === 2) {
-                  return parts[0] + '\n' + parts[1]; // 2段表示
-                }
-                return lbl;
+                const parts = lbl.split(/\s+/);           // ["MM-DD","HH:mm"]
+                return [parts[0], parts[1] || ''];        // 2行表示
               }
-              return (index % step === 0) ? lbl : '';
+              return (index % step === 0) ? lbl : '';     // 通常は間引き
             }
           }
         },
@@ -254,6 +253,7 @@ function renderProgressChart(progress){
     }
   });
 }
+
 function mountVList(elId, rows, mapper){
   const el = document.getElementById(elId);
   el.innerHTML = "";
