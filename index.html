@@ -104,13 +104,13 @@
   </section>
 
   <section class="section">
-    <h2>参加回数の多いユーザー 上位5人 <span class="pill" id="malNote">総ゲーム数 = 0</span></h2>
+    <h2>参加回数の多いリスナー 上位5人 <span class="pill" id="malNote">総ゲーム数 = 0</span></h2>
     <div id="mostActive" class="vlist"></div>
   </section>
 
   <section class="section">
-    <h2>達成に最も貢献したユーザー 上位5人 <span class="pill" id="malContrib">マレスロアン = 0</span></h2>
-    <div class="muted">未使用チャンピオンを初めて使用済みにした回数</div>
+    <h2>最も貢献したリスナー 上位5人 <span class="pill" id="malContrib">マレスロアン = 0</span></h2>
+    <div class="muted">未使用チャンピオンを初めて使用した回数</div>
     <div id="mostContrib" class="vlist"></div>
   </section>
 
@@ -130,7 +130,7 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxaWtw0J8sHbB14
 const MIN_GAMES_CHAMP = 3;
 const MIN_GAMES_USER  = 5;
 const EXCLUDE_FOR_ACTIVE = new Set(["マレスロアン","野良"]);
-const MAX_TICKS = 8;
+const MAX_TICKS = 10;
 
 /* ====== Helpers ====== */
 function assumedTeam(slot){ return slot <= 5 ? "Blue" : "Red"; }
@@ -439,7 +439,7 @@ function buildShareCards({topFreq, topContrib, topWinChamp, topWinUsers}){
       .sort((a,b)=> (b[1]-a[1]) || a[0].localeCompare(b[0],'ja'))
       .slice(0,5)
       .map(([user,count])=>({user,count}));
-    mountVList('mostContrib', contrib, (r)=> `<div class="title">${r.user}</div><div>初使用 ${r.count} 体</div>`);
+    mountVList('mostContrib', contrib, (r)=> `<div class="title">${r.user}</div><div>${r.count} 体 貢献</div>`);
     medalizeTop3('#mostContrib');
 
     // share cards
