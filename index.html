@@ -67,7 +67,7 @@
 
   <section class="section">
     <h2>チャンピオン消化タイムライン</h2>
-    <div class="muted">横軸：StartTime（最初はMM-DD HH:mm、各日00:00はMM-DD 00:00、全体で最大6本） / 縦軸：ユニークチャンピオン累積%</div>
+    <div class="muted">横軸：最初のみ「MM-DD HH:mm」、以降は「HH:mm」（全体で約6本） / 縦軸：ユニークチャンピオン累積%</div>
     <div class="chart-wrap"><canvas id="progress"></canvas></div>
   </section>
 
@@ -160,96 +160,56 @@ async function fetchData(){
 }
 
 /* -------- Utils: 時刻処理 -------- */
-// startTime は "MM-DD HH:mm" 形式の文字列。年は仮で2000年に固定。
+// startTime は "MM-DD HH:mm" 文字列（Apps Script側の仕様）。年は2000年で固定しUTCで扱う。
 function parseMDHM(s){
-  // s: "09-26 19:00" or "19:00"
   const m = String(s).match(/^(\d{2})-(\d{2})\s+(\d{2}):(\d{2})$/);
-  if (m){
-    const [_, MM, DD, HH, mm] = m;
-    const d = new Date(Date.UTC(2000, Number(MM)-1, Number(DD), Number(HH), Number(mm)));
-    return d;
-  }
-  const m2 = String(s).match(/^(\d{2}):(\d{2})$/);
-  if (m2){
-    const [_, HH, mm] = m2;
-    const d = new Date(Date.UTC(2000, 1, 1, Number(HH), Number(mm))); // ダミー日付
-    return d;
-  }
-  return new Date(NaN);
+  if (!m) return new Date(NaN);
+  const [, MM, DD, HH, mm] = m;
+  return new Date(Date.UTC(2000, Number(MM)-1, Number(DD), Number(HH), Number(mm)));
 }
 function fmt2(n){ return String(n).padStart(2,'0'); }
-function formatLabel(date, withDay){
-  const MM = fmt2(date.getUTCMonth()+1), DD = fmt2(date.getUTCDate());
-  const HH = fmt2(date.getUTCHours()), mm = fmt2(date.getUTCMinutes());
-  return withDay ? `${MM}-${DD} ${HH}:${mm}` : `${HH}:${mm}`;
+function fmtMDHMms(ms){
+  const d = new Date(ms);
+  const MM = fmt2(d.getUTCMonth()+1), DD = fmt2(d.getUTCDate());
+  const HH = fmt2(d.getUTCHours()),   mm = fmt2(d.getUTCMinutes());
+  return `${MM}-${DD} ${HH}:${mm}`;
 }
-function startOfUTCDate(d){
-  const dd = new Date(d); dd.setUTCHours(0,0,0,0); return dd;
-}
-function addDaysUTC(d, n){
-  const dd = new Date(d); dd.setUTCDate(dd.getUTCDate()+n); return dd;
+function fmtHMms(ms){
+  const d = new Date(ms);
+  const HH = fmt2(d.getUTCHours()), mm = fmt2(d.getUTCMinutes());
+  return `${HH}:${mm}`;
 }
 
-/* rows: [{ startTime: "MM-DD HH:mm", ...}] を Date へ */
 function rowsWithDates(rows){
   return rows.map(r => ({ ...r, _date: parseMDHM(r.startTime) }))
              .filter(r => !isNaN(r._date));
 }
 function sortByTime(rows){ return rows.slice().sort((a,b)=> a._date - b._date); }
 
-/* 進捗計算（%） */
+/* 進捗（%）: xはmsで保持 */
 function calcProgress(sortedRows, totalChampions){
   const seen = new Set(); const y=[]; const times=[];
   for(const r of sortedRows){
     if(r.champion) seen.add(r.champion);
     y.push(Math.round(seen.size/totalChampions*100));
-    times.push(r._date.getTime()); // ← Date → ms に統一
+    times.push(r._date.getTime());
   }
   return { times, y, uniqueCount: seen.size };
 }
 
-/* 横軸tickの生成：最初、各日00:00（データ有無に関わらず）、最後、残りは等間隔で追加して最大6本 */
+/* 目盛を等間隔で最大6本（最初・最後は必ず含む） */
 function buildDesiredTicks(times){
   if(times.length === 0) return [];
   const first = times[0], last = times[times.length-1];
-  const ticks = [];
-  // 最初
-  ticks.push(first.getTime());
-  // 各日00:00
-  let cur = startOfUTCDate(first);
-  // 次の日から
-  cur = addDaysUTC(cur, 1);
-  while (cur <= last){
-    ticks.push(cur.getTime());
-    cur = addDaysUTC(cur, 1);
-  }
-  // 最後
-  if (last.getTime() !== ticks[ticks.length-1]) ticks.push(last.getTime());
+  if (first === last) return [first]; // 単一点対策
 
-  // 等間隔で補充
-  if (ticks.length < MAX_TICKS){
-    const need = MAX_TICKS - ticks.length;
-    const span = last.getTime() - first.getTime();
-    if (span > 0){
-      for(let i=1;i<=need;i++){
-        const t = first.getTime() + Math.round(span * (i/(need+1)));
-        ticks.push(t);
-      }
-    }
+  const ticks = [first, last];
+  const need = Math.max(0, MAX_TICKS - ticks.length); // 残り本数
+  for(let i=1;i<=need;i++){
+    const t = first + Math.round((last - first) * (i/(need+1)));
+    ticks.push(t);
   }
-
-  // 重複除去＆ソート
-  const uniq = Array.from(new Set(ticks)).sort((a,b)=>a-b);
-  // 最大6本に抑制（多い場合は等間隔間引き）
-  if (uniq.length > MAX_TICKS){
-    const step = Math.ceil(uniq.length / MAX_TICKS);
-    const picked = [];
-    for(let i=0;i<uniq.length;i+=step) picked.push(uniq[i]);
-    // 端が落ちたら最後を足す
-    if (picked[picked.length-1] !== uniq[uniq.length-1]) picked.push(uniq[uniq.length-1]);
-    return picked.slice(0, MAX_TICKS);
-  }
-  return uniq;
+  return Array.from(new Set(ticks)).sort((a,b)=>a-b).slice(0, MAX_TICKS);
 }
 
 /* 頻出/勝率系 */
@@ -283,21 +243,20 @@ function renderSummary(progress, total){
     `Unique champions: ${progress.uniqueCount}/${total} (${Math.round(progress.uniqueCount/total*100)}%)`;
 }
 
+/* Chart（time scale, ラベルは最初のみMM-DD HH:mm、他はHH:mm、最大6本） */
 let progressChart = null;
 function renderProgressChart(progress){
   const ctx = document.getElementById('progress').getContext('2d');
   if (progressChart) progressChart.destroy();
 
-  const desiredTicks = buildDesiredTicks(progress.times); // すでに ms の配列
-  const xMin = desiredTicks[0];
-  const xMax = desiredTicks[desiredTicks.length - 1];
+  const desiredTicks = buildDesiredTicks(progress.times);
+  const xMin = desiredTicks[0], xMax = desiredTicks[desiredTicks.length-1];
 
   progressChart = new Chart(ctx, {
     type: 'line',
     data: {
       datasets: [{
         label: '達成率(%)',
-        // x も ms で渡す
         data: progress.times.map((t,i)=> ({ x: t, y: progress.y[i] }))
       }]
     },
@@ -309,30 +268,19 @@ function renderProgressChart(progress){
       scales: {
         x: {
           type: 'time',
-          bounds: 'ticks',   // ← 軸境界を tick に合わせる
-          min: xMin,         // ← 明示的に固定
+          bounds: 'ticks',
+          min: xMin,
           max: xMax,
-          time: { unit: 'hour', displayFormats: { hour: 'HH:mm' } },
-          // tick を「最初 / 各日0:00 / 最後 + 等間隔補完」に差し替え
           afterBuildTicks: (scale) => {
             scale.ticks = desiredTicks.map(v => ({ value: v }));
           },
           ticks: {
             autoSkip: false,
             maxRotation: 0,
-            // 2段表示（配列を返す）: 最初 / 0:00 / 最後 → MM-DD と HH:mm
             callback: (value) => {
-              const d = new Date(Number(value));
-              const HH = String(d.getUTCHours()).padStart(2,'0');
-              const mm = String(d.getUTCMinutes()).padStart(2,'0');
-              const isEdge = (value === xMin) || (value === xMax);
-              const isMidnight = (HH === '00' && mm === '00');
-              if (isEdge || isMidnight){
-                const MM = String(d.getUTCMonth()+1).padStart(2,'0');
-                const DD = String(d.getUTCDate()).padStart(2,'0');
-                return [`${MM}-${DD}`, `${HH}:${mm}`]; // ← 2段
-              }
-              return `${HH}:${mm}`;
+              // 最初だけ「MM-DD HH:mm」、それ以外は「HH:mm」
+              if (value === xMin) return fmtMDHMms(value);
+              return fmtHMms(value);
             }
           }
         },
@@ -385,7 +333,7 @@ function buildShareCards({topFreq, topContrib, topWinChamp, topWinUsers}){
     const {rows, champions} = await fetchData();
     const totalChampions = champions.length > 0 ? champions.length : 171;
 
-    // タイムライン用にDate化→ソート
+    // タイムライン
     const rowsD = sortByTime(rowsWithDates(rows));
     const progress = calcProgress(rowsD, totalChampions);
     renderSummary(progress, totalChampions);
@@ -405,7 +353,7 @@ function buildShareCards({topFreq, topContrib, topWinChamp, topWinUsers}){
         </div>`;
     });
 
-    // 勝率（チャンピオン n≥3） 左=低 / 右=高
+    // 勝率（チャンピオン n≥3）
     const byChamp = summarizeWins(rowsD, r => r.champion);
     const champHigh = toSortedArray(byChamp, { minN: MIN_GAMES_CHAMP, take: 5, comparator: cmpHigh });
     const champLow  = toSortedArray(byChamp, { minN: MIN_GAMES_CHAMP, take: 5, comparator: cmpLow  });
