@@ -414,7 +414,7 @@ function buildShareCards({topFreq, topContrib, topWinChamp, topWinUsers}){
       if(EXCLUDE_FOR_ACTIVE.has(r.user)) continue;
       activeMap.set(r.user, (activeMap.get(r.user)||0)+1);
     }
-    document.getElementById('malNote').textContent = `マレスロアン = ${malCount}`;
+    document.getElementById('malNote').textContent = `総ゲーム数 = ${malCount}`;
     const mostActive = [...activeMap.entries()]
       .sort((a,b)=> (b[1]-a[1]) || a[0].localeCompare(b[0],'ja'))
       .slice(0,5)
