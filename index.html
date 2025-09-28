@@ -8,22 +8,20 @@
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
-  :root { --gap: 20px; --maxw: 1280px; }
-  body { font-family: system-ui, sans-serif; margin: 0; background:#fafafa; }
+  :root { --gap: 20px; --maxw: 1280px; --ink:#0f172a; --sub:#667085; --line:#e5e7eb; --card:#ffffff; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif; margin: 0; background:#fafafa; color:#111; }
   .container { max-width: var(--maxw); margin: 24px auto 80px auto; padding: 0 16px; text-align: center; }
   h1 { margin: 0 0 8px 0; }
   h2 { margin: 28px 0 8px 0; }
-  .section { margin: 24px 0; padding: 16px; border: 1px solid #e5e7eb; border-radius: 12px; background:#fff; }
+  .section { margin: 24px 0; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background:var(--card); }
   .muted { color: #6b7280; font-size: 13px; }
-
-  /* layout */
+  /* grid helpers */
   .col-2 { display:grid; grid-template-columns: 1fr; gap: var(--gap); text-align: left; }
   @media(min-width:860px){ .col-2{ grid-template-columns: 1fr 1fr; } }
   .colcol { display:flex; flex-direction:column; align-items:center; }
   .vlist { display:flex; flex-direction:column; gap:12px; align-items:center; }
-
   /* cards */
-  .card { position: relative; padding: 14px; border:1px solid #e5e7eb; border-radius: 12px; background:#fff; text-align:left; width: min(420px, 33%); }
+  .card { position: relative; padding: 14px; border:1px solid var(--line); border-radius: 12px; background:var(--card); text-align:left; width: min(420px, 33%); }
   #champLow .card, #champHigh .card { width: 100%; }
   @media(max-width:760px){ .card{ width:100%; } }
   .card .title { font-size:16px; font-weight:600; margin:0 0 6px 0; }
@@ -31,18 +29,15 @@
   .row { display:flex; gap:10px; align-items:center; }
   .champ-icon { width:28px; height:28px; border-radius:6px; object-fit:cover; background:#eee; }
   .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#f3f4f6; font-size:12px; margin-left:8px; }
-
   /* chart */
   .chart-wrap { position: relative; width: 100%; height: 420px; margin: 0 auto; }
-  @media(min-width:1024px){ .chart-wrap{ height: 460px; width: 70%; margin: 0 auto; } } /* PC時は70%で中央 */
+  @media(min-width:1024px){ .chart-wrap{ height: 460px; width: 70%; margin: 0 auto; } }
   #progress { width: 100% !important; height: 100% !important; display:block; }
-
   /* loading modal */
   .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 9999; }
   .modal { background:#fff; padding: 24px 28px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
   .spinner { width: 28px; height: 28px; border: 3px solid #e5e7eb; border-top-color: #111827; border-radius: 50%; animation: spin 1s linear infinite; display:inline-block; vertical-align: middle; margin-right:8px;}
   @keyframes spin { to { transform: rotate(360deg);} }
-
   /* medals */
   .medal { position:absolute; top:8px; left:8px; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:12px; }
   .gold   { background: radial-gradient(circle at 30% 30%, #ffe88a, #e6b800); }
@@ -51,12 +46,41 @@
   .gold-bg   { background: linear-gradient(180deg, #fff9e6, #fff5cc); }
   .silver-bg { background: linear-gradient(180deg, #f8f8f8, #efefef); }
   .bronze-bg { background: linear-gradient(180deg, #fff1e6, #ffe5d1); }
-
-  /* share cards */
-  .share-cards { display:grid; gap: var(--gap); grid-template-columns: 1fr; }
-  @media(min-width:860px){ .share-cards{ grid-template-columns: repeat(2, 1fr);} }
-  .share-card { border:1px solid #e5e7eb; border-radius:16px; padding:16px; background:linear-gradient(180deg,#ffffff,#fafafa); text-align:left; }
-  .share-card h3 { margin:0 0 6px 0; }
+  /* ===== Result card (image-like) ===== */
+  .result-wrap { display:flex; flex-direction:column; align-items:center; gap:12px; }
+  .result-stage { width: 100%; display:flex; justify-content:center; }
+  /* 作画キャンバス（固定寸法, SNS向き）*/
+  .rcanvas { width: 960px; height: 540px; background: #fdfdfd; border:1px solid var(--line); border-radius: 16px; position: relative; overflow:hidden; }
+  @media(max-width:1024px){ .rcanvas{ width: 100%; height: auto; aspect-ratio: 16/9; } }
+  /* 背景の淡いパターン */
+  .rc-bg { position:absolute; inset:0; background:
+    radial-gradient(1200px 600px at -10% 10%, #eef2ff 0%, transparent 60%),
+    radial-gradient(800px 400px at 110% 90%, #fef3c7 0%, transparent 55%),
+    linear-gradient(180deg,#ffffff, #f8fafc 75%); }
+  /* 上部バー（ID/証明書風） */
+  .rc-topbar { position:absolute; top:0; left:0; right:0; height:56px; background:#0b1736; color:#fff; display:flex; align-items:center; padding:0 18px; }
+  .rc-topbar .brand { font-weight:700; letter-spacing:0.08em; font-size:14px; opacity:.65; }
+  .rc-topbar .result { margin-left:8px; font-weight:800; font-size:18px; } /* ← “RESULT” 小さめ */
+  /* 本文領域 */
+  .rc-body { position:absolute; inset:56px 0 0 0; display:grid; grid-template-columns: 1.2fr 1fr; height: calc(100% - 56px); }
+  @media(max-width:720px){ .rc-body{ grid-template-columns: 1fr; } }
+  .rc-left { padding:18px 24px; display:grid; grid-template-rows: auto auto 1fr; gap:14px; }
+  .rc-right { position:relative; display:flex; align-items:flex-end; justify-content:center; padding:16px; }
+  /* 情報ボックス */
+  .rc-info { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+  .rc-card { border:1px solid var(--line); background:#fff; border-radius:12px; padding:10px 12px; text-align:left; }
+  .rc-kv { display:flex; align-items:baseline; gap:8px; }
+  .rc-kv .k { color: var(--sub); font-size:12px; }
+  .rc-kv .v { font-weight:800; font-size:20px; color: var(--ink); letter-spacing:.03em; }
+  /* リスト（Top3） */
+  .rc-list { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
+  .rc-chip { display:flex; align-items:center; justify-content:center; gap:6px; border:1px solid var(--line); border-radius:10px; padding:6px; background:#fff; min-height:48px; }
+  .rc-chip .name { font-weight:600; font-size:14px; color:#111; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 160px; }
+  .rc-avatars { display:flex; gap:10px; }
+  .rc-avatars img { width:48px; height:48px; border-radius:10px; object-fit:cover; background:#eee; border:1px solid #d1d5db; }
+  /* キャラクター */
+  .rc-char { position:absolute; bottom:8px; right:16px; width: 240px; height: 240px; image-rendering: pixelated; filter: drop-shadow(0 6px 18px rgba(0,0,0,.25)); }
+  @media(max-width:720px){ .rc-char{ position:static; width:200px; height:auto; } }
 </style>
 </head>
 <body>
@@ -104,23 +128,49 @@
   </section>
 
   <section class="section">
-    <h2>参加回数の多いリスナー 上位5人 <span class="pill" id="malNote">総ゲーム数 = 0</span></h2>
-    <div id="mostActive" class="vlist"></div>
-  </section>
-
-  <section class="section">
-    <h2>最も貢献したリスナー 上位5人 <span class="pill" id="malContrib">マレスロアン = 0</span></h2>
-    <div class="muted">未使用チャンピオンを初めて使用した回数</div>
-    <div id="mostContrib" class="vlist"></div>
-  </section>
-
-  <section class="section">
-    <h2>共有カード（X向けまとめ）</h2>
-    <div style="margin:8px 0;">
-      <button onclick="saveAllCards()">PNGで保存</button>
-      <button onclick="copyTopSummary()">テキストをコピー</button>
+    <h2>リザルト</h2>
+    <div class="result-wrap">
+      <div class="result-stage">
+        <!-- ここを画像化して下に表示 -->
+        <div id="resultCard" class="rcanvas" aria-label="Result Card">
+          <div class="rc-bg"></div>
+          <div class="rc-topbar">
+            <div class="brand">ARAM RECORD</div>
+            <div class="result">RESULT</div>
+          </div>
+          <div class="rc-body">
+            <div class="rc-left">
+              <div class="rc-info">
+                <div class="rc-card">
+                  <div class="rc-kv"><div class="k">TIME</div><div id="rc-time" class="v">0H00M</div></div>
+                </div>
+                <div class="rc-card">
+                  <div class="rc-kv"><div class="k">PROGRESS</div><div id="rc-progress" class="v">0/171</div></div>
+                </div>
+              </div>
+              <div class="rc-card">
+                <div class="rc-kv" style="margin-bottom:6px;"><div class="k">POPULAR</div><div class="v" style="font-size:14px;">Top 3</div></div>
+                <div id="rc-popular" class="rc-avatars"></div>
+              </div>
+              <div class="rc-card">
+                <div class="rc-kv" style="margin-bottom:6px;"><div class="k">PARTICIPANTS</div><div class="v" style="font-size:14px;">Top 3</div></div>
+                <div id="rc-part" class="rc-list"></div>
+              </div>
+              <div class="rc-card">
+                <div class="rc-kv" style="margin-bottom:6px;"><div class="k">CONTRIBUTORS</div><div class="v" style="font-size:14px;">Top 3</div></div>
+                <div id="rc-contrib" class="rc-list"></div>
+              </div>
+            </div>
+            <div class="rc-right">
+              <img id="rc-char" class="rc-char" alt="Maresroan" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 画像化して表示 -->
+      <img id="resultImage" alt="Result Image" style="max-width:100%; border:1px solid var(--line); border-radius:12px;" />
+      <div class="muted">※自動生成された画像を上に表示します</div>
     </div>
-    <div id="shareCards" class="share-cards"></div>
   </section>
 </div>
 
@@ -130,7 +180,9 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxaWtw0J8sHbB14
 const MIN_GAMES_CHAMP = 3;
 const MIN_GAMES_USER  = 5;
 const EXCLUDE_FOR_ACTIVE = new Set(["マレスロアン","野良"]);
-const MAX_TICKS = 10;
+const MAX_TICKS = 6;
+/* リザルト用キャラクター画像URL（差し替え可） */
+const RESULT_CHAR_URL = ""; // 例: "https://example.com/maresroan.png"
 
 /* ====== Helpers ====== */
 function assumedTeam(slot){ return slot <= 5 ? "Blue" : "Red"; }
@@ -183,9 +235,8 @@ function rowsWithDates(rows){
 }
 function sortByTime(rows){ return rows.slice().sort((a,b)=> a._date - b._date); }
 
-/* ====== Progress ====== */
+/* ====== Progress（試合単位で集約） ====== */
 function calcProgressByMatch(sortedRows, totalChampions){
-  // 1) 試合ごとにまとめる（開始時刻は match の代表時刻）
   const matches = [];
   let cur = null;
   for (const r of sortedRows){
@@ -197,21 +248,13 @@ function calcProgressByMatch(sortedRows, totalChampions){
   }
   if (cur) matches.push(cur);
 
-  // 2) 累積ユニークを「試合の終わり」で更新して1点だけ出す
-  const seen = new Set();
-  const times = [];
-  const y = [];
+  const seen = new Set(); const times = []; const y = [];
   for (const m of matches){
-    let added = 0;
-    for (const c of m.champions){
-      if (!seen.has(c)){ seen.add(c); added++; }
-    }
-    // 試合で新規0でも「横ばい」を描くため点は出す
-    const pct = Math.round(seen.size / totalChampions * 100);
+    for (const c of m.champions){ if (!seen.has(c)) seen.add(c); }
     times.push(m.timeMs);
-    y.push(pct);
+    y.push(Math.round(seen.size / totalChampions * 100));
   }
-  return { times, y, uniqueCount: seen.size };
+  return { times, y, uniqueCount: seen.size, firstMs: matches[0]?.timeMs ?? null, lastMs: matches[matches.length-1]?.timeMs ?? null };
 }
 
 /* ====== X ticks (max ~6) ====== */
@@ -219,7 +262,6 @@ function buildDesiredTicks(times){
   if(times.length === 0) return [];
   const first = times[0], last = times[times.length-1];
   if (first === last) return [first];
-
   const ticks = [first, last];
   const need = Math.max(0, MAX_TICKS - ticks.length);
   for(let i=1;i<=need;i++){
@@ -275,8 +317,8 @@ function renderProgressChart(progress){
       datasets: [{
         label: '達成率(%)',
         data: progress.times.map((t,i)=> ({ x: t, y: progress.y[i] })),
-        tension: 0,         // 直線
-        pointRadius: 0,     // 点は非表示（任意で1にしてもOK）
+        tension: 0,
+        pointRadius: 0,
         borderWidth: 2,
         spanGaps: true
       }]
@@ -286,39 +328,21 @@ function renderProgressChart(progress){
       maintainAspectRatio: false,
       animation: false,
       parsing: false,
-      plugins: {
-        tooltip: {
-          callbacks: {
-            label: (ctx) => {
-              const d = new Date(ctx.parsed.x);
-              const HH = fmt2(d.getUTCHours());
-              const mm = fmt2(d.getUTCMinutes());
-              return `達成率 ${ctx.parsed.y}% @ ${HH}:${mm}`;
-            }
-          }
-        }
-      },
       scales: {
         x: {
           type: 'time',
           bounds: 'ticks',
           min: xMin, max: xMax,
-          afterBuildTicks: (scale) => {
-            scale.ticks = ticks.map(v => ({ value: v }));
-          },
+          afterBuildTicks: (scale) => { scale.ticks = ticks.map(v => ({ value: v })); },
           ticks: {
-            autoSkip: false,
-            maxRotation: 0,
+            autoSkip: false, maxRotation: 0,
             callback: (value) => {
               const d = new Date(Number(value));
               const HH = fmt2(d.getUTCHours());
               const DD = fmt2(d.getUTCDate());
-              // 最初だけ「DD日/HH時」、以降は「HH」
-              if (value === xMin) return `${DD}日 ${HH}時`;
-              return `${HH}`;
+              return (value === xMin) ? `${DD}日/${HH}時` : `${HH}`;
             }
-          },
-          grid: { display: true }
+          }
         },
         y: { min: 0, max: 100, ticks: { stepSize: 50, callback: v => v + '%' } }
       }
@@ -348,22 +372,43 @@ function medalizeTop3(containerSelector){
   });
 }
 
-/* ====== Render: share cards ====== */
-function buildShareCards({topFreq, topContrib, topWinChamp, topWinUsers}){
-  const host = document.getElementById('shareCards'); host.innerHTML = "";
-  const mk = (title, lines) => {
-    const d = document.createElement('div');
-    d.className = 'share-card';
-    d.innerHTML = `<h3>${title}</h3><div>${lines.map(x=>`<div>${x}</div>`).join('')}</div>`;
-    host.appendChild(d); return d;
+/* ====== Result card ====== */
+function formatDurationHM(msStart, msEnd){
+  if(msStart==null || msEnd==null) return "0H00M";
+  const diff = Math.max(0, msEnd - msStart);
+  const m = Math.round(diff / 60000);
+  const h = Math.floor(m / 60);
+  const mm = fmt2(m % 60);
+  return `${h}H${mm}M`;
+}
+function fillResultCard({durationHM, progressText, popular3, partTop3, contribTop3, charUrl}){
+  document.getElementById('rc-time').textContent = durationHM;
+  document.getElementById('rc-progress').textContent = progressText;
+  // popular3: [{iconUrl}]
+  const popEl = document.getElementById('rc-popular'); popEl.innerHTML = "";
+  popular3.forEach(p=>{
+    const img = document.createElement('img');
+    img.src = p.iconUrl || ''; img.alt = ''; img.loading = 'lazy';
+    popEl.appendChild(img);
+  });
+  // partTop3 / contribTop3: names only
+  const mkNameList = (id, list) => {
+    const el = document.getElementById(id); el.innerHTML = "";
+    list.forEach(n=>{
+      const chip = document.createElement('div'); chip.className = 'rc-chip';
+      chip.innerHTML = `<div class="name">${n}</div>`;
+      el.appendChild(chip);
+    });
   };
-  mk("🏆 勝率トップ・チャンピオン", [
-    topWinChamp[0] ? `${topWinChamp[0].name} / ${formatPct(topWinChamp[0].rate)} / n=${topWinChamp[0].n}` : '-'
-  ]);
-  mk("🔥 勝率トップ・ユーザー（Top3）",
-    topWinUsers.slice(0,3).map(u=>`${u.name} / ${formatPct(u.rate)} / n=${u.n}`));
-  mk("📈 最多出場チャンピオン", [ topFreq[0] ? `${topFreq[0].champion}（${topFreq[0].count}回）` : '-' ]);
-  mk("✨ 達成に最も貢献", [ topContrib[0] ? `${topContrib[0].user} / ${topContrib[0].count}回` : '-' ]);
+  mkNameList('rc-part', partTop3);
+  mkNameList('rc-contrib', contribTop3);
+  const charImg = document.getElementById('rc-char');
+  if (charUrl){ charImg.src = charUrl; charImg.style.display='block'; } else { charImg.style.display='none'; }
+}
+async function renderResultImage(){
+  const node = document.getElementById('resultCard');
+  const canvas = await html2canvas(node, {backgroundColor: null, scale: 2});
+  document.getElementById('resultImage').src = canvas.toDataURL('image/png');
 }
 
 /* ====== Main ====== */
@@ -372,14 +417,15 @@ function buildShareCards({topFreq, topContrib, topWinChamp, topWinUsers}){
     const {rows, champions} = await fetchData();
     const totalChampions = champions.length > 0 ? champions.length : 171;
 
-    // timeline
+    // timeline（試合単位）
     const rowsD = sortByTime(rowsWithDates(rows));
     const progress = calcProgressByMatch(rowsD, totalChampions);
     renderSummary(progress, totalChampions);
     renderProgressChart(progress);
 
-    // top freq champs
+    // 頻出チャンピオン（5件, plus Top3 for card）
     const freq = topNChampions(rowsD, 5);
+    const popular3 = freq.slice(0,3).map(f=>({ iconUrl: champIconUrl(f.champion) }));
     mountVList('topChampsCards', freq, (r)=> {
       const url = champIconUrl(r.champion);
       return `
@@ -392,7 +438,7 @@ function buildShareCards({topFreq, topContrib, topWinChamp, topWinUsers}){
         </div>`;
     });
 
-    // winrate by champion (n≥3)
+    // 勝率（チャンピオン n≥3）
     const byChamp = summarizeWins(rowsD, r => r.champion);
     const champHigh = toSortedArray(byChamp, { minN: MIN_GAMES_CHAMP, take: 5, comparator: cmpHigh });
     const champLow  = toSortedArray(byChamp, { minN: MIN_GAMES_CHAMP, take: 5, comparator: cmpLow  });
@@ -419,56 +465,53 @@ function buildShareCards({topFreq, topContrib, topWinChamp, topWinUsers}){
         </div>`;
     });
 
-    // winrate by user (n≥5)
+    // 勝率（ユーザー n≥5）
     const byUser = summarizeWins(rowsD, r => r.user);
     const userHigh = toSortedArray(byUser, { minN: MIN_GAMES_USER, take: 5, comparator: cmpHigh });
     mountVList('userHigh', userHigh, (r)=> `<div class="title">${r.name}</div><div>勝率 ${formatPct(r.rate)} <span class="muted">n=${r.n}</span></div>`);
     medalizeTop3('#userHigh');
 
-    // most active (exclude)
-    let malCount = 0;
+    // 参加回数（除外つき）→ Top3 for card
     const activeMap = new Map();
+    let totalGames = 0;
+    const seenMatch = new Set();
     for(const r of rowsD){
+      if(!seenMatch.has(r.matchId)){ seenMatch.add(r.matchId); totalGames++; }
       if(!r.user) continue;
-      if(r.user === "マレスロアン") malCount++;
       if(EXCLUDE_FOR_ACTIVE.has(r.user)) continue;
       activeMap.set(r.user, (activeMap.get(r.user)||0)+1);
     }
-    document.getElementById('malNote').textContent = `総ゲーム数 = ${malCount}`;
     const mostActive = [...activeMap.entries()]
       .sort((a,b)=> (b[1]-a[1]) || a[0].localeCompare(b[0],'ja'))
-      .slice(0,5)
-      .map(([name,count])=>({name,count}));
-    mountVList('mostActive', mostActive, (r)=> `<div class="title">${r.name}</div><div>参加 ${r.count} 回</div>`);
-    medalizeTop3('#mostActive');
+      .slice(0,3).map(([name])=>name);
 
-    // first-use contributors (exclude マレスロアン)
-    const seen = new Set(); const contribMap = new Map();
-    let malContrib = 0;
+    // 達成貢献（初使用）※マレスロアン除外 → Top3 for card
+    const firstSeen = new Set(); const contribMap = new Map();
     for(const r of rowsD){
       if(!r.champion) continue;
-      if(!seen.has(r.champion)){
-        seen.add(r.champion);
+      if(!firstSeen.has(r.champion)){
+        firstSeen.add(r.champion);
         const u = r.user || "(名無し)";
-        if(u === "マレスロアン"){ malContrib++; continue; }
+        if(u === "マレスロアン") continue;
         contribMap.set(u, (contribMap.get(u)||0)+1);
       }
     }
-    document.getElementById('malContrib').textContent = `マレスロアン = ${malContrib}`;
-    const contrib = [...contribMap.entries()]
+    const contribTop3 = [...contribMap.entries()]
       .sort((a,b)=> (b[1]-a[1]) || a[0].localeCompare(b[0],'ja'))
-      .slice(0,5)
-      .map(([user,count])=>({user,count}));
-    mountVList('mostContrib', contrib, (r)=> `<div class="title">${r.user}</div><div>${r.count} 体 貢献</div>`);
-    medalizeTop3('#mostContrib');
+      .slice(0,3).map(([name])=>name);
 
-    // share cards
-    buildShareCards({
-      topFreq: freq,
-      topContrib: contrib,
-      topWinChamp: champHigh,
-      topWinUsers: userHigh
+    // ==== Result card ====
+    const durationHM = formatDurationHM(progress.firstMs, progress.lastMs);
+    const progressText = `${progress.uniqueCount}/${totalChampions}`;
+    fillResultCard({
+      durationHM,
+      progressText,
+      popular3,
+      partTop3: mostActive,
+      contribTop3,
+      charUrl: RESULT_CHAR_URL
     });
+    await renderResultImage();
 
   }catch(err){
     showLoading(false);
