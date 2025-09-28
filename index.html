@@ -49,18 +49,45 @@
   /* Result card resized */
   .rcanvas { 
     width: 480px; height: 270px; 
-    background: #fdfdfd; border:1px solid var(--line); border-radius: 12px; 
-    position: relative; overflow:hidden;
+    background: #fdfdfd; border:1px solid var(--line); border-radius: 8px; 
+    position: relative; overflow:hidden; font-size:9px;
   }
-  .rc-topbar { height:28px; padding:0 8px; font-size:10px; }
-  .rc-topbar .result { font-size:12px; margin-left:4px; }
-  .rc-body { inset:28px 0 0 0; display:grid; grid-template-columns: 1fr 0.8fr; height: calc(100% - 28px); }
-  .rc-card { border-radius:6px; padding:4px 6px; font-size:10px; }
-  .rc-kv .v { font-size:12px; }
-  .rc-avatars img { width:28px; height:28px; }
-  .rc-list { gap:4px; }
-  .rc-chip { padding:2px 4px; font-size:10px; min-height:24px; }
-  .rc-char { width:120px; height:120px; }
+  .rc-topbar { 
+    height:16px; padding:0 6px; font-size:8px; 
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .rc-topbar .brand { font-weight:600; font-size:8px; }
+  .rc-topbar .result { font-size:9px; opacity:0.7; }
+  
+  .rc-body { 
+    inset:16px 0 0 0; 
+    display:grid; grid-template-columns: 1fr 0.8fr; 
+    height: calc(100% - 16px); 
+    padding:6px;
+    gap:6px;
+  }
+  
+  .rc-card { 
+    border:1px solid var(--line); border-radius:4px; 
+    padding:3px 4px; font-size:8px; margin-bottom:4px;
+  }
+  .rc-kv .k { font-size:8px; }
+  .rc-kv .v { font-size:11px; font-weight:600; }
+  
+  .rc-avatars { display:flex; gap:4px; }
+  .rc-avatars img { width:18px; height:18px; border-radius:3px; }
+  
+  .rc-list { display:flex; flex-direction:column; gap:3px; }
+  .rc-chip { 
+    background:#f3f4f6; border-radius:3px; 
+    padding:1px 3px; font-size:9px; min-height:16px; 
+    display:flex; align-items:center;
+  }
+  
+  .rc-char { 
+    width:70px; height:70px; 
+    position:absolute; bottom:6px; right:6px;
+  }
 
   /* 背景の淡いパターン */
   .rc-bg { position:absolute; inset:0; background:
