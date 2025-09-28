@@ -525,7 +525,6 @@ async function renderResultImage(){
     medalizeTop3('#mostContrib');
 
     /* ===== リザルトカード（この集計は既存に影響なし） ===== */
-    const popular3 = topNChampions(rowsD, 3).map(f=>({ iconUrl: champIconUrl(f.champion) }));
     const durationHM = formatDurationHM(progress.firstMs, progress.lastMs);
     const progressText = `${progress.uniqueCount}/${totalChampions}`;
     const partTop3Names = mostActiveTop5.slice(0,3).map(x=>x.name);
