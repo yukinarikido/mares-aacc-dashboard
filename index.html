@@ -71,7 +71,14 @@
   .rc-topbar .result { margin-left:6px; font-weight:800; font-size:12px; }
   .rc-body { position:absolute; inset:32px 0 0 0; display:grid; grid-template-columns: 1.2fr 1fr; height: calc(100% - 32px); }
   .rc-left { padding:8px 10px; display:grid; grid-template-rows:auto auto 1fr; gap:6px; }
-  .rc-right { position:relative; display:flex; align-items:flex-start; justify-content:center; padding:8px; }
+  .rc-right{
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    align-items:center;     /* 横センター */
+    justify-content:center; /* 縦センター */
+    padding:8px;
+  }
   .rc-info { display:grid; grid-template-columns: 1fr 1fr; gap:6px; }
   .rc-card { border:1px solid var(--line); background:#fff; border-radius:6px; padding:4px 6px; text-align:left; }
   .rc-kv { display:flex; align-items:baseline; gap:4px; }
@@ -88,9 +95,24 @@
   .rc-avatars img { width:28px; height:28px; border-radius:4px; object-fit:cover; background:#eee; border:1px solid #d1d5db; }
 
   /* キャラクター：カード高さの70%で上側配置 + キャプション */
-  .rc-char { position:absolute; top:6px; right:6px; height:70%; width:auto; image-rendering: pixelated; filter: drop-shadow(0 6px 18px rgba(0,0,0,.25)); }
-  .rc-caption { position:absolute; right:6px; bottom:6px; text-align:center; font-weight:700; color:#0b1736; line-height:1.05; }
-  .rc-caption .small { font-size:10px; opacity:.8; }
+  .rc-char{
+    position:static;        /* ← absolute を削除 */
+    height:70%;             /* カード高の約7割 */
+    width:auto;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 6px 18px rgba(0,0,0,.25));
+    max-width:100%;
+    max-height:70%;
+  }
+  .rc-caption{
+    position:static;        /* ← absolute を削除 */
+    margin-top:6px;
+    text-align:center;
+    font-weight:700;
+    color:#0b1736;
+    line-height:1.05;
+  }
+  .rc-caption .small{ font-size:10px; opacity:.8; }
 </style>
 </head>
 <body>
