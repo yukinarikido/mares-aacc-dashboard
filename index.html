@@ -46,12 +46,22 @@
   .gold-bg   { background: linear-gradient(180deg, #fff9e6, #fff5cc); }
   .silver-bg { background: linear-gradient(180deg, #f8f8f8, #efefef); }
   .bronze-bg { background: linear-gradient(180deg, #fff1e6, #ffe5d1); }
-  /* ===== Result card (image-like) ===== */
-  .result-wrap { display:flex; flex-direction:column; align-items:center; gap:12px; }
-  .result-stage { width: 100%; display:flex; justify-content:center; }
-  /* 作画キャンバス（固定寸法, SNS向き）*/
-  .rcanvas { width: 960px; height: 540px; background: #fdfdfd; border:1px solid var(--line); border-radius: 16px; position: relative; overflow:hidden; }
-  @media(max-width:1024px){ .rcanvas{ width: 100%; height: auto; aspect-ratio: 16/9; } }
+  /* Result card resized */
+  .rcanvas { 
+    width: 480px; height: 270px; 
+    background: #fdfdfd; border:1px solid var(--line); border-radius: 12px; 
+    position: relative; overflow:hidden;
+  }
+  .rc-topbar { height:28px; padding:0 8px; font-size:10px; }
+  .rc-topbar .result { font-size:12px; margin-left:4px; }
+  .rc-body { inset:28px 0 0 0; display:grid; grid-template-columns: 1fr 0.8fr; height: calc(100% - 28px); }
+  .rc-card { border-radius:6px; padding:4px 6px; font-size:10px; }
+  .rc-kv .v { font-size:12px; }
+  .rc-avatars img { width:28px; height:28px; }
+  .rc-list { gap:4px; }
+  .rc-chip { padding:2px 4px; font-size:10px; min-height:24px; }
+  .rc-char { width:120px; height:120px; }
+
   /* 背景の淡いパターン */
   .rc-bg { position:absolute; inset:0; background:
     radial-gradient(1200px 600px at -10% 10%, #eef2ff 0%, transparent 60%),
@@ -149,24 +159,26 @@
                 </div>
               </div>
               <div class="rc-card">
-                <div class="rc-kv" style="margin-bottom:6px;"><div class="k">POPULAR</div><div class="v" style="font-size:14px;">Top 3</div></div>
+                <div class="rc-kv" style="margin-bottom:4px;"><div class="k">POPULAR</div><div class="v" style="font-size:12px;">Top 3</div></div>
                 <div id="rc-popular" class="rc-avatars"></div>
               </div>
-              <div class="rc-card">
-                <div class="rc-kv" style="margin-bottom:6px;"><div class="k">PARTICIPANTS</div><div class="v" style="font-size:14px;">Top 3</div></div>
-                <div id="rc-part" class="rc-list"></div>
-              </div>
-              <div class="rc-card">
-                <div class="rc-kv" style="margin-bottom:6px;"><div class="k">CONTRIBUTORS</div><div class="v" style="font-size:14px;">Top 3</div></div>
-                <div id="rc-contrib" class="rc-list"></div>
+              <div class="rc-info">
+                <div class="rc-card">
+                  <div class="rc-kv" style="margin-bottom:4px;"><div class="k">PARTICIPANTS</div><div class="v" style="font-size:12px;">Top 3</div></div>
+                  <div id="rc-part" class="rc-list"></div>
+                </div>
+                <div class="rc-card">
+                  <div class="rc-kv" style="margin-bottom:4px;"><div class="k">CONTRIBUTORS</div><div class="v" style="font-size:12px;">Top 3</div></div>
+                  <div id="rc-contrib" class="rc-list"></div>
+                </div>
               </div>
             </div>
             <div class="rc-right">
-              <img id="rc-char" class="rc-char" alt="Maresroan" />
+              <img id="rc-char" class="rc-char" src="mares.png" alt="Maresroan" />
             </div>
           </div>
         </div>
-      </div>
+
       <!-- 画像化して表示 -->
       <img id="resultImage" alt="Result Image" style="max-width:100%; border:1px solid var(--line); border-radius:12px;" />
       <div class="muted">※自動生成された画像を上に表示します</div>
