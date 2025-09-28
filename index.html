@@ -508,6 +508,24 @@ async function renderResultImage(){
     mountVList('userHigh', userHigh, (r)=> `<div class="title">${r.name}</div><div>勝率 ${formatPct(r.rate)} <span class="muted">n=${r.n}</span></div>`);
     medalizeTop3('#userHigh');
 
+    // 参加回数（全体表示用 上位5）
+    const activeAll = [...activeMap.entries()]
+      .sort((a,b)=> (b[1]-a[1]) || a[0].localeCompare(b[0],'ja'));
+    const maresCount = rowsD.filter(r => r.user==="マレスロアン").length;
+    document.getElementById('mares-count').textContent = maresCount;
+    mountVList('activeUsers', activeAll.filter(([name])=>!EXCLUDE_FOR_ACTIVE.has(name)).slice(0,5),
+      ([name,count], idx) => `<div class="title">${name}</div><div class="muted">参加 ${count} 回</div>`);
+    medalizeTop3('#activeUsers');
+
+    // 達成貢献（全体表示用 上位5）
+    const contribAll = [...contribMap.entries()]
+      .sort((a,b)=> (b[1]-a[1]) || a[0].localeCompare(b[0],'ja'));
+    const maresContrib = contribMap.get("マレスロアン") || 0;
+    document.getElementById('mares-contrib').textContent = maresContrib;
+    mountVList('contribUsers', contribAll.filter(([name])=>name!=="マレスロアン").slice(0,5),
+      ([name,count]) => `<div class="title">${name}</div><div class="muted">初使用 ${count} 回</div>`);
+    medalizeTop3('#contribUsers');
+    
     // 参加回数（除外つき）→ Top3 for card
     const activeMap = new Map();
     let totalGames = 0;
