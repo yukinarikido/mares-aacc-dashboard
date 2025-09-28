@@ -15,11 +15,13 @@
   h2 { margin: 28px 0 8px 0; }
   .section { margin: 24px 0; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background:var(--card); }
   .muted { color: #6b7280; font-size: 13px; }
+
   /* grid helpers */
   .col-2 { display:grid; grid-template-columns: 1fr; gap: var(--gap); text-align: left; }
   @media(min-width:860px){ .col-2{ grid-template-columns: 1fr 1fr; } }
   .colcol { display:flex; flex-direction:column; align-items:center; }
   .vlist { display:flex; flex-direction:column; gap:12px; align-items:center; }
+
   /* cards */
   .card { position: relative; padding: 14px; border:1px solid var(--line); border-radius: 12px; background:var(--card); text-align:left; width: min(420px, 33%); }
   #champLow .card, #champHigh .card { width: 100%; }
@@ -29,15 +31,18 @@
   .row { display:flex; gap:10px; align-items:center; }
   .champ-icon { width:28px; height:28px; border-radius:6px; object-fit:cover; background:#eee; }
   .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#f3f4f6; font-size:12px; margin-left:8px; }
+
   /* chart */
   .chart-wrap { position: relative; width: 100%; height: 420px; margin: 0 auto; }
   @media(min-width:1024px){ .chart-wrap{ height: 460px; width: 70%; margin: 0 auto; } }
   #progress { width: 100% !important; height: 100% !important; display:block; }
+
   /* loading modal */
   .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 9999; }
   .modal { background:#fff; padding: 24px 28px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
   .spinner { width: 28px; height: 28px; border: 3px solid #e5e7eb; border-top-color: #111827; border-radius: 50%; animation: spin 1s linear infinite; display:inline-block; vertical-align: middle; margin-right:8px;}
   @keyframes spin { to { transform: rotate(360deg);} }
+
   /* medals */
   .medal { position:absolute; top:8px; left:8px; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:12px; }
   .gold   { background: radial-gradient(circle at 30% 30%, #ffe88a, #e6b800); }
@@ -46,49 +51,55 @@
   .gold-bg   { background: linear-gradient(180deg, #fff9e6, #fff5cc); }
   .silver-bg { background: linear-gradient(180deg, #f8f8f8, #efefef); }
   .bronze-bg { background: linear-gradient(180deg, #fff1e6, #ffe5d1); }
-  /* Result card */
+
+  /* ================= Result Card (480x270) ================ */
+  .result-stage{ width:100%; display:flex; justify-content:center; }
+
   .rcanvas {
     width: 480px; height: 270px;
     background: #fdfdfd; border:1px solid var(--line); border-radius: 8px;
     position: relative; overflow:hidden; font-size:9px;
   }
-  .rc-bg { position:absolute; inset:0; background:
-    radial-gradient(600px 300px at -10% 10%, #eef2ff 0%, transparent 60%),
-    radial-gradient(400px 200px at 110% 90%, #fef3c7 0%, transparent 55%),
-    linear-gradient(180deg,#ffffff, #f8fafc 75%); }
-  .result-stage{ width:100%; display:flex; justify-content:center; }
   @media(max-width:560px){
     .rcanvas{ width:100%; height:auto; aspect-ratio:16/9; }
   }
+
   /* 背景の淡いパターン */
   .rc-bg { position:absolute; inset:0; background:
-    radial-gradient(1200px 600px at -10% 10%, #eef2ff 0%, transparent 60%),
-    radial-gradient(800px 400px at 110% 90%, #fef3c7 0%, transparent 55%),
-    linear-gradient(180deg,#ffffff, #f8fafc 75%); }
-  /* 上部バー（ID/証明書風） */
-  .rc-topbar { position:absolute; top:0; left:0; right:0; height:56px; background:#0b1736; color:#fff; display:flex; align-items:center; padding:0 18px; }
-  .rc-topbar .brand { font-weight:700; letter-spacing:0.08em; font-size:14px; opacity:.65; }
-  .rc-topbar .result { margin-left:8px; font-weight:800; font-size:18px; } /* ← “RESULT” 小さめ */
-  /* 本文領域 */
-  .rc-body { position:absolute; inset:56px 0 0 0; display:grid; grid-template-columns: 1.2fr 1fr; height: calc(100% - 56px); }
-  @media(max-width:720px){ .rc-body{ grid-template-columns: 1fr; } }
-  .rc-left { padding:18px 24px; display:grid; grid-template-rows: auto auto 1fr; gap:14px; }
-  .rc-right { position:relative; display:flex; align-items:flex-end; justify-content:center; padding:16px; }
-  /* 情報ボックス */
-  .rc-info { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
-  .rc-card { border:1px solid var(--line); background:#fff; border-radius:12px; padding:10px 12px; text-align:left; }
-  .rc-kv { display:flex; align-items:baseline; gap:8px; }
-  .rc-kv .k { color: var(--sub); font-size:12px; }
-  .rc-kv .v { font-weight:800; font-size:20px; color: var(--ink); letter-spacing:.03em; }
-  /* リスト（Top3） */
-  .rc-list { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
-  .rc-chip { display:flex; align-items:center; justify-content:center; gap:6px; border:1px solid var(--line); border-radius:10px; padding:6px; background:#fff; min-height:48px; }
-  .rc-chip .name { font-weight:600; font-size:14px; color:#111; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 160px; }
-  .rc-avatars { display:flex; gap:10px; }
-  .rc-avatars img { width:48px; height:48px; border-radius:10px; object-fit:cover; background:#eee; border:1px solid #d1d5db; }
-  /* キャラクター */
-  .rc-char { position:absolute; bottom:8px; right:16px; width: 240px; height: 240px; image-rendering: pixelated; filter: drop-shadow(0 6px 18px rgba(0,0,0,.25)); }
-  @media(max-width:720px){ .rc-char{ position:static; width:200px; height:auto; } }
+    radial-gradient(600px 300px at -10% 10%, #eef2ff 0%, transparent 60%),
+    radial-gradient(400px 200px at 110% 90%, #fef3c7 0%, transparent 55%),
+    linear-gradient(180deg,#ffffff, #f8fafc 75%);
+  }
+
+  /* Top bar（小さめ） */
+  .rc-topbar {
+    position:absolute; top:0; left:0; right:0; height:32px;
+    background:#0b1736; color:#fff; display:flex; align-items:center; padding:0 10px;
+  }
+  .rc-topbar .brand { font-weight:700; font-size:10px; opacity:.65; letter-spacing:.06em; }
+  .rc-topbar .result { margin-left:6px; font-weight:800; font-size:12px; }
+
+  /* Body */
+  .rc-body { position:absolute; inset:32px 0 0 0; display:grid; grid-template-columns: 1.2fr 1fr; height: calc(100% - 32px); }
+  .rc-left { padding:8px 10px; display:grid; grid-template-rows:auto auto 1fr; gap:6px; }
+  .rc-right { position:relative; display:flex; align-items:flex-end; justify-content:center; padding:6px; }
+
+  /* Info blocks */
+  .rc-info { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  .rc-card { border:1px solid var(--line); background:#fff; border-radius:6px; padding:4px 6px; text-align:left; }
+  .rc-kv { display:flex; align-items:baseline; gap:4px; }
+  .rc-kv .k { color: var(--sub); font-size:8px; }
+  .rc-kv .v { font-weight:800; font-size:12px; color: var(--ink); }
+
+  /* lists */
+  .rc-avatars { display:flex; gap:6px; }
+  .rc-avatars img { width:28px; height:28px; border-radius:4px; object-fit:cover; background:#eee; border:1px solid #d1d5db; }
+  .rc-list { display:flex; flex-direction:column; gap:2px; }
+  .rc-chip { border:1px solid var(--line); border-radius:6px; padding:2px 4px; background:#fff; font-size:9px; min-height:14px; display:flex; align-items:center; }
+  .rc-chip .name { font-weight:600; font-size:9px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+  /* character */
+  .rc-char { position:absolute; bottom:6px; right:6px; width:100px; height:100px; image-rendering: pixelated; }
 </style>
 </head>
 <body>
@@ -137,49 +148,48 @@
 
   <section class="section">
     <h2>リザルト</h2>
-    <div class="result-wrap">
-      <div class="result-stage">
-        <!-- カード -->
-        <div id="resultCard" class="rcanvas" aria-label="Result Card">
-          <div class="rc-bg"></div>
-          <div class="rc-topbar">
-            <div class="brand">ARAM RECORD</div>
-            <div class="result">RESULT</div>
-          </div>
-          <div class="rc-body">
-            <div class="rc-left">
-              <div class="rc-info">
-                <div class="rc-card">
-                  <div class="rc-kv"><div class="k">TIME</div><div id="rc-time" class="v">0H00M</div></div>
-                </div>
-                <div class="rc-card">
-                  <div class="rc-kv"><div class="k">PROGRESS</div><div id="rc-progress" class="v">0/171</div></div>
-                </div>
+    <div class="result-stage">
+      <!-- ここを画像化して下に表示 -->
+      <div id="resultCard" class="rcanvas" aria-label="Result Card">
+        <div class="rc-bg"></div>
+        <div class="rc-topbar">
+          <div class="brand">ARAM RECORD</div>
+          <div class="result">RESULT</div>
+        </div>
+        <div class="rc-body">
+          <div class="rc-left">
+            <div class="rc-info">
+              <div class="rc-card">
+                <div class="rc-kv"><div class="k">TIME</div><div id="rc-time" class="v">0H00M</div></div>
               </div>
               <div class="rc-card">
-                <div class="rc-kv" style="margin-bottom:4px;"><div class="k">POPULAR</div></div>
-                <div id="rc-popular" class="rc-avatars"></div>
-              </div>
-              <div class="rc-info">
-                <div class="rc-card">
-                  <div class="rc-kv" style="margin-bottom:4px;"><div class="k">PARTICIPANTS</div></div>
-                  <div id="rc-part" class="rc-list"></div>
-                </div>
-                <div class="rc-card">
-                  <div class="rc-kv" style="margin-bottom:4px;"><div class="k">CONTRIBUTORS</div></div>
-                  <div id="rc-contrib" class="rc-list"></div>
-                </div>
+                <div class="rc-kv"><div class="k">PROGRESS</div><div id="rc-progress" class="v">0/171</div></div>
               </div>
             </div>
-            <div class="rc-right">
-              <img id="rc-char" class="rc-char" src="mares.png" alt="Maresroan" />
+            <div class="rc-card">
+              <div class="rc-kv" style="margin-bottom:4px;"><div class="k">POPULAR</div></div>
+              <div id="rc-popular" class="rc-avatars"></div>
+            </div>
+            <div class="rc-info">
+              <div class="rc-card">
+                <div class="rc-kv" style="margin-bottom:4px;"><div class="k">PARTICIPANTS</div></div>
+                <div id="rc-part" class="rc-list"></div>
+              </div>
+              <div class="rc-card">
+                <div class="rc-kv" style="margin-bottom:4px;"><div class="k">CONTRIBUTORS</div></div>
+                <div id="rc-contrib" class="rc-list"></div>
+              </div>
             </div>
           </div>
+          <div class="rc-right">
+            <img id="rc-char" class="rc-char" src="mares.png" alt="Maresroan" />
+          </div>
         </div>
-        <!-- 自動生成画像 -->
-        <img id="resultImage" alt="Result Image" style="max-width:100%; border:1px solid var(--line); border-radius:12px;" />
-        <div class="muted">※自動生成された画像を上に表示します</div>
       </div>
+    </div>
+    <div style="margin-top:10px;">
+      <img id="resultImage" alt="Result Image" style="max-width:100%; border:1px solid var(--line); border-radius:12px;" />
+      <div class="muted">※自動生成された画像を上に表示します</div>
     </div>
   </section>
 </div>
@@ -191,8 +201,8 @@ const MIN_GAMES_CHAMP = 3;
 const MIN_GAMES_USER  = 5;
 const EXCLUDE_FOR_ACTIVE = new Set(["マレスロアン","野良"]);
 const MAX_TICKS = 6;
-/* リザルト用キャラクター画像URL（差し替え可） */
-const RESULT_CHAR_URL = ""; // 例: "https://example.com/maresroan.png"
+/* 任意：別URLのキャラ画像に差し替えたい場合のみ設定 */
+const RESULT_CHAR_URL = "";
 
 /* ====== Helpers ====== */
 function assumedTeam(slot){ return slot <= 5 ? "Blue" : "Red"; }
@@ -360,7 +370,7 @@ function renderProgressChart(progress){
   });
 }
 
-/* ====== Render: lists ====== */
+/* ====== Render helpers ====== */
 function mountVList(elId, rows, mapper){
   const el = document.getElementById(elId);
   el.innerHTML = "";
@@ -394,6 +404,7 @@ function formatDurationHM(msStart, msEnd){
 function fillResultCard({durationHM, progressText, popular3, partTop3, contribTop3, charUrl}){
   document.getElementById('rc-time').textContent = durationHM;
   document.getElementById('rc-progress').textContent = progressText;
+
   // popular3: [{iconUrl}]
   const popEl = document.getElementById('rc-popular'); popEl.innerHTML = "";
   popular3.forEach(p=>{
@@ -401,6 +412,7 @@ function fillResultCard({durationHM, progressText, popular3, partTop3, contribTo
     img.src = p.iconUrl || ''; img.alt = ''; img.loading = 'lazy';
     popEl.appendChild(img);
   });
+
   // partTop3 / contribTop3: names only
   const mkNameList = (id, list) => {
     const el = document.getElementById(id); el.innerHTML = "";
@@ -412,8 +424,12 @@ function fillResultCard({durationHM, progressText, popular3, partTop3, contribTo
   };
   mkNameList('rc-part', partTop3);
   mkNameList('rc-contrib', contribTop3);
-  const charImg = document.getElementById('rc-char');
-  if (charUrl){ charImg.src = charUrl; charImg.style.display='block'; } else { charImg.style.display='none'; }
+
+  // キャラ画像はURL指定がある場合のみ差し替える（デフォは mares.png）
+  if (charUrl){
+    const charImg = document.getElementById('rc-char');
+    charImg.src = charUrl;
+  }
 }
 async function renderResultImage(){
   const node = document.getElementById('resultCard');
