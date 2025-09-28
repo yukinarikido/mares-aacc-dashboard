@@ -71,7 +71,7 @@
   .rc-topbar .result { margin-left:6px; font-weight:800; font-size:12px; }
   .rc-body { position:absolute; inset:32px 0 0 0; display:grid; grid-template-columns: 1.2fr 1fr; height: calc(100% - 32px); }
   .rc-left { padding:8px 10px; display:grid; grid-template-rows:auto auto 1fr; gap:6px; }
-  .rc-right { position:relative; display:flex; align-items:flex-end; justify-content:center; padding:8px; }
+  .rc-right { position:relative; display:flex; align-items:flex-start; justify-content:center; padding:8px; }
   .rc-info { display:grid; grid-template-columns: 1fr 1fr; gap:6px; }
   .rc-card { border:1px solid var(--line); background:#fff; border-radius:6px; padding:4px 6px; text-align:left; }
   .rc-kv { display:flex; align-items:baseline; gap:4px; }
@@ -87,7 +87,10 @@
   .rc-avatars { display:flex; gap:6px; flex-wrap:wrap; }
   .rc-avatars img { width:28px; height:28px; border-radius:4px; object-fit:cover; background:#eee; border:1px solid #d1d5db; }
 
-  .rc-char { position:absolute; bottom:6px; right:6px; width:100px; height:100px; image-rendering: pixelated; filter: drop-shadow(0 6px 18px rgba(0,0,0,.25)); }
+  /* キャラクター：カード高さの70%で上側配置 + キャプション */
+  .rc-char { position:absolute; top:6px; right:6px; height:70%; width:auto; image-rendering: pixelated; filter: drop-shadow(0 6px 18px rgba(0,0,0,.25)); }
+  .rc-caption { position:absolute; right:6px; bottom:6px; text-align:center; font-weight:700; color:#0b1736; line-height:1.05; }
+  .rc-caption .small { font-size:10px; opacity:.8; }
 </style>
 </head>
 <body>
@@ -160,7 +163,7 @@
             <div class="rc-left">
               <div class="rc-info">
                 <div class="rc-card">
-                  <div class="rc-kv"><div class="k">TIME</div><div id="rc-time" class="v">0H00M</div></div>
+                  <div class="rc-kv"><div class="k">TIME</div><div id="rc-time" class="v">00H00M</div></div>
                 </div>
                 <div class="rc-card">
                   <div class="rc-kv"><div class="k">PROGRESS</div><div id="rc-progress" class="v">0/171</div></div>
@@ -189,6 +192,10 @@
             </div>
             <div class="rc-right">
               <img id="rc-char" class="rc-char" src="mares.png" alt="Maresroan" />
+              <div class="rc-caption">
+                <div class="small">thank you</div>
+                <div class="small">for watching</div>
+              </div>
             </div>
           </div>
         </div>
@@ -397,12 +404,12 @@ function medalizeTop3(containerSelector){
 
 /* ====== Result card ====== */
 function formatDurationHM(msStart, msEnd){
-  if(msStart==null || msEnd==null) return "0H00M";
+  if(msStart==null || msEnd==null) return "00H00M";
   const diff = Math.max(0, msEnd - msStart);
   const m = Math.round(diff / 60000);
   const h = Math.floor(m / 60);
   const mm = fmt2(m % 60);
-  return `${h}H${mm}M`;
+  return `${fmt2(h)}H${mm}M`;        // ← 時を2桁で表示
 }
 function fillResultCard({durationHM, progressText, popularN, partTopN, contribTopN, charUrl}){
   document.getElementById('rc-time').textContent = durationHM;
@@ -494,7 +501,7 @@ async function renderResultImage(){
     mountVList('userHigh', userHigh, (r)=> `<div class="title">${r.name}</div><div>勝率 ${formatPct(r.rate)} <span class="muted">n=${r.n}</span></div>`);
     medalizeTop3('#userHigh');
 
-    // 参加回数 Top5（除外ルールは従来通り）
+    // 参加回数 Top5
     let malCount = 0;
     const activeMap = new Map();
     for(const r of rowsD){
@@ -511,7 +518,7 @@ async function renderResultImage(){
     mountVList('mostActive', mostActiveTop5, (r)=> `<div class="title">${r.name}</div><div>参加 ${r.count} 回</div>`);
     medalizeTop3('#mostActive');
 
-    // 初使用貢献 Top5（マレスロアン除外）
+    // 初使用貢献 Top5
     const seenFirst = new Set(); const contribMap = new Map(); let malContrib = 0;
     for(const r of rowsD){
       if(!r.champion) continue;
