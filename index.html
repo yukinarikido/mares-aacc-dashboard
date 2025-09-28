@@ -46,48 +46,34 @@
   .gold-bg   { background: linear-gradient(180deg, #fff9e6, #fff5cc); }
   .silver-bg { background: linear-gradient(180deg, #f8f8f8, #efefef); }
   .bronze-bg { background: linear-gradient(180deg, #fff1e6, #ffe5d1); }
-  /* Result card resized */
-  .rcanvas { 
-    width: 480px; height: 270px; 
-    background: #fdfdfd; border:1px solid var(--line); border-radius: 8px; 
+  /* Result card */
+  .rcanvas {
+    width: 480px; height: 270px;
+    background: #fdfdfd; border:1px solid var(--line); border-radius: 8px;
     position: relative; overflow:hidden; font-size:9px;
   }
-  .rc-topbar { 
-    height:16px; padding:0 6px; font-size:8px; 
-    display:flex; align-items:center; justify-content:space-between;
-  }
-  .rc-topbar .brand { font-weight:600; font-size:8px; }
-  .rc-topbar .result { font-size:9px; opacity:0.7; }
-  
-  .rc-body { 
-    inset:16px 0 0 0; 
-    display:grid; grid-template-columns: 1fr 0.8fr; 
-    height: calc(100% - 16px); 
-    padding:6px;
-    gap:6px;
-  }
-  
-  .rc-card { 
-    border:1px solid var(--line); border-radius:4px; 
-    padding:3px 4px; font-size:8px; margin-bottom:4px;
-  }
-  .rc-kv .k { font-size:8px; }
-  .rc-kv .v { font-size:11px; font-weight:600; }
-  
-  .rc-avatars { display:flex; gap:4px; }
-  .rc-avatars img { width:18px; height:18px; border-radius:3px; }
-  
-  .rc-list { display:flex; flex-direction:column; gap:3px; }
-  .rc-chip { 
-    background:#f3f4f6; border-radius:3px; 
-    padding:1px 3px; font-size:9px; min-height:16px; 
-    display:flex; align-items:center;
-  }
-  
-  .rc-char { 
-    width:70px; height:70px; 
-    position:absolute; bottom:6px; right:6px;
-  }
+  .rc-bg { position:absolute; inset:0; background:
+    radial-gradient(600px 300px at -10% 10%, #eef2ff 0%, transparent 60%),
+    radial-gradient(400px 200px at 110% 90%, #fef3c7 0%, transparent 55%),
+    linear-gradient(180deg,#ffffff, #f8fafc 75%); }
+  .rc-topbar { position:absolute; top:0; left:0; right:0; height:32px;
+    background:#0b1736; color:#fff; display:flex; align-items:center; padding:0 10px; }
+  .rc-topbar .brand { font-weight:700; font-size:10px; opacity:.65; }
+  .rc-topbar .result { margin-left:6px; font-weight:800; font-size:12px; }
+  .rc-body { position:absolute; inset:32px 0 0 0; display:grid; grid-template-columns: 1.2fr 1fr; height: calc(100% - 32px); }
+  .rc-left { padding:8px 10px; display:grid; grid-template-rows:auto auto 1fr; gap:6px; }
+  .rc-info { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  .rc-card { border:1px solid var(--line); background:#fff; border-radius:6px; padding:4px 6px; text-align:left; }
+  .rc-kv { display:flex; align-items:baseline; gap:4px; }
+  .rc-kv .k { color: var(--sub); font-size:8px; }
+  .rc-kv .v { font-weight:800; font-size:12px; color: var(--ink); }
+  .rc-avatars { display:flex; gap:6px; }
+  .rc-avatars img { width:28px; height:28px; border-radius:4px; object-fit:cover; border:1px solid #d1d5db; }
+  .rc-list { display:flex; flex-direction:column; gap:2px; }
+  .rc-chip { border:1px solid var(--line); border-radius:6px; padding:2px 4px; background:#fff; font-size:9px; min-height:14px; display:flex; align-items:center; }
+  .rc-chip .name { font-weight:600; font-size:9px; }
+  .rc-char { position:absolute; bottom:6px; right:6px; width:100px; height:100px; image-rendering: pixelated; }
+
 
   /* 背景の淡いパターン */
   .rc-bg { position:absolute; inset:0; background:
@@ -168,7 +154,7 @@
     <h2>リザルト</h2>
     <div class="result-wrap">
       <div class="result-stage">
-        <!-- ここを画像化して下に表示 -->
+        <!-- カード -->
         <div id="resultCard" class="rcanvas" aria-label="Result Card">
           <div class="rc-bg"></div>
           <div class="rc-topbar">
@@ -186,16 +172,16 @@
                 </div>
               </div>
               <div class="rc-card">
-                <div class="rc-kv" style="margin-bottom:4px;"><div class="k">POPULAR</div><div class="v" style="font-size:12px;">Top 3</div></div>
+                <div class="rc-kv" style="margin-bottom:4px;"><div class="k">POPULAR</div></div>
                 <div id="rc-popular" class="rc-avatars"></div>
               </div>
               <div class="rc-info">
                 <div class="rc-card">
-                  <div class="rc-kv" style="margin-bottom:4px;"><div class="k">PARTICIPANTS</div><div class="v" style="font-size:12px;">Top 3</div></div>
+                  <div class="rc-kv" style="margin-bottom:4px;"><div class="k">PARTICIPANTS</div></div>
                   <div id="rc-part" class="rc-list"></div>
                 </div>
                 <div class="rc-card">
-                  <div class="rc-kv" style="margin-bottom:4px;"><div class="k">CONTRIBUTORS</div><div class="v" style="font-size:12px;">Top 3</div></div>
+                  <div class="rc-kv" style="margin-bottom:4px;"><div class="k">CONTRIBUTORS</div></div>
                   <div id="rc-contrib" class="rc-list"></div>
                 </div>
               </div>
@@ -205,10 +191,10 @@
             </div>
           </div>
         </div>
-
-      <!-- 画像化して表示 -->
-      <img id="resultImage" alt="Result Image" style="max-width:100%; border:1px solid var(--line); border-radius:12px;" />
-      <div class="muted">※自動生成された画像を上に表示します</div>
+        <!-- 自動生成画像 -->
+        <img id="resultImage" alt="Result Image" style="max-width:100%; border:1px solid var(--line); border-radius:12px;" />
+        <div class="muted">※自動生成された画像を上に表示します</div>
+      </div>
     </div>
   </section>
 </div>
