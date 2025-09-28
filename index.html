@@ -314,7 +314,7 @@ function renderProgressChart(progress){
               const HH = fmt2(d.getUTCHours());
               const DD = fmt2(d.getUTCDate());
               // 最初だけ「DD日/HH時」、以降は「HH」
-              if (value === xMin) return `${DD}日/${HH}時`;
+              if (value === xMin) return `${DD}日 ${HH}時`;
               return `${HH}`;
             }
           },
