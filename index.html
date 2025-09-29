@@ -463,11 +463,6 @@ function fillResultCard({durationHM, progressText, popularN, partTopN, contribTo
 
   if (charUrl){ document.getElementById('rc-char').src = charUrl; }
 }
-async function renderResultImage(){
-  const node = document.getElementById('resultCard');
-  const canvas = await html2canvas(node, {backgroundColor: null, scale: 2});
-  document.getElementById('resultImage').src = canvas.toDataURL('image/png');
-}
 
 /* ====== Main ====== */
 (async()=>{
@@ -577,7 +572,6 @@ async function renderResultImage(){
       contribTopN: contribTop5Names,
       charUrl: RESULT_CHAR_URL
     });
-    await renderResultImage();
 
   }catch(err){
     showLoading(false);
