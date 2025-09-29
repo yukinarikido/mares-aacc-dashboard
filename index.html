@@ -15,7 +15,13 @@
   h2 { margin: 28px 0 8px 0; }
   .section { margin: 24px 0; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background:var(--card); }
   .muted { color: #6b7280; font-size: 13px; }
-
+  @media (min-width: 1024px) {
+    .section {
+      width: 66%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  }
   /* grid helpers */
   .col-2 { display:grid; grid-template-columns: 1fr; gap: var(--gap); text-align: left; }
   @media(min-width:860px){ .col-2{ grid-template-columns: 1fr 1fr; } }
@@ -62,10 +68,13 @@
   @media(max-width:560px){
     .rcanvas{ width:100%; height:auto; aspect-ratio:16/9; }
   }
-  .rc-bg { position:absolute; inset:0; background:
+  .rc-bg { background:
     radial-gradient(600px 300px at -10% 10%, #eef2ff 0%, transparent 60%),
     radial-gradient(400px 200px at 110% 90%, #fef3c7 0%, transparent 55%),
-    linear-gradient(180deg,#ffffff, #f8fafc 75%); }
+    radial-gradient(800px 500px at 50% 45%, rgba(0,0,0,0.035) 0%, transparent 70%),
+    linear-gradient(180deg,#ffffff, #f8fafc 75%),
+    linear-gradient(180deg, #f7f7f7 0%, #f1f1f1 100%);
+  }
   .rc-topbar { position:absolute; top:0; left:0; right:0; height:32px; background:#0b1736; color:#fff; display:flex; align-items:center; padding:0 10px; }
   .rc-topbar .brand { font-weight:700; letter-spacing:0.08em; font-size:10px; opacity:.65; }
   .rc-topbar .result { margin-left:6px; font-weight:800; font-size:12px; }
@@ -136,7 +145,7 @@
   </section>
 
   <section class="section">
-    <h2>リスナーが好むチャンピオン</h2>
+    <h2>頻出チャンピオン</h2>
     <div id="topChampsCards" class="vlist"></div>
   </section>
 
@@ -172,7 +181,6 @@
 
   <!-- ===== Result card section ===== -->
   <section class="section">
-    <h2>リザルト</h2>
     <div class="result-wrap">
       <div class="result-stage">
         <div id="resultCard" class="rcanvas" aria-label="Result Card">
